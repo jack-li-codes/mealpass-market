@@ -4,38 +4,6 @@ MealPass Market is a one-week school group project MVP for a student meal card b
 
 Classroom MVP only. No real money, accounts, payment processing, or school system integration is included.
 
-## How To Run Locally
-
-1. Open a terminal in the project folder:
-
-   ```powershell
-   cd "C:\Users\lucy_\OneDrive\文档\mealpass prototype"
-   ```
-
-2. Install dependencies if needed:
-
-   ```powershell
-   npm install
-   ```
-
-3. Start the development server:
-
-   ```powershell
-   npm run dev
-   ```
-
-4. Open the local URL shown in the terminal. Usually:
-
-   ```text
-   http://localhost:3000
-   ```
-
-   If `localhost` has connection issues, try:
-
-   ```text
-   http://127.0.0.1:3000
-   ```
-
 ## MVP Features
 
 - View active meal card balance listings.
