@@ -10,7 +10,12 @@ type Listing = {
   locationNote: string;
 };
 
-type View = "listings" | "create" | "detail";
+type SellerInfo = {
+  credibilityRating: number;
+  totalTransactions: number;
+};
+
+type View = "listings" | "create" | "detail" | "seller-info";
 
 const initialListings: Listing[] = [
   {
@@ -33,13 +38,60 @@ const initialListings: Listing[] = [
     balanceAmount: 65,
     askingPrice: 52,
     locationNote: "Student atrium, best for weekly lunches"
+  },
+  {
+    id: 4,
+    sellerName: "Alex T.",
+    balanceAmount: 35,
+    askingPrice: 28,
+    locationNote: "Main hallway by lockers, mornings only"
+  },
+  {
+    id: 5,
+    sellerName: "Casey L.",
+    balanceAmount: 50,
+    askingPrice: 40,
+    locationNote: "West building entrance after classes"
+  },
+  {
+    id: 6,
+    sellerName: "Riley M.",
+    balanceAmount: 72,
+    askingPrice: 58,
+    locationNote: "Gym bleachers during lunch"
+  },
+  {
+    id: 7,
+    sellerName: "Jessie H.",
+    balanceAmount: 44,
+    askingPrice: 35,
+    locationNote: "Library study area, flexible timing"
+  },
+  {
+    id: 8,
+    sellerName: "Morgan B.",
+    balanceAmount: 80,
+    askingPrice: 64,
+    locationNote: "Student center, after 3pm"
   }
 ];
+
+const initialSellerInformation: { [key: string]: SellerInfo } = {
+  "Maya R.": { credibilityRating: 4.8, totalTransactions: 12 },
+  "Jordan K.": { credibilityRating: 4.5, totalTransactions: 8 },
+  "Sam P.": { credibilityRating: 4.9, totalTransactions: 15 },
+  "Alex T.": { credibilityRating: 4.6, totalTransactions: 10 },
+  "Casey L.": { credibilityRating: 4.7, totalTransactions: 9 },
+  "Riley M.": { credibilityRating: 4.9, totalTransactions: 14 },
+  "Jessie H.": { credibilityRating: 4.4, totalTransactions: 7 },
+  "Morgan B.": { credibilityRating: 5.0, totalTransactions: 18 }
+};
 
 const money = new Intl.NumberFormat("en-CA", {
   style: "currency",
   currency: "CAD",
-  maximumFractionDigits: 0
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2
 });
 
 function getDiscount(balanceAmount: number, askingPrice: number) {
@@ -56,6 +108,10 @@ export default function Home() {
   const [walletBalance, setWalletBalance] = useState(100);
   const [view, setView] = useState<View>("listings");
   const [selectedListing, setSelectedListing] = useState<Listing | null>(null);
+  const [selectedSeller, setSelectedSeller] = useState<Listing | null>(null);
+  const [sellerInformation, setSellerInformation] = useState<{ [key: string]: SellerInfo }>(initialSellerInformation);
+  const [reviewScore, setReviewScore] = useState<number>(5);
+  const [reviewedRequestIds, setReviewedRequestIds] = useState<number[]>([]);
   const [successMessage, setSuccessMessage] = useState("");
   const [form, setForm] = useState({
     sellerName: "",
@@ -69,6 +125,46 @@ export default function Home() {
     setSelectedListing(listing);
     setView("detail");
   }
+
+  function openSellerInfo(listing: Listing) {
+    setSuccessMessage("");
+    setSelectedSeller(listing);
+    setView("seller-info");
+  }
+
+  function leaveReview(score: number) {
+    if (!selectedSeller) return;
+
+    const name = selectedSeller.sellerName;
+
+    setSellerInformation((prev) => {
+      const prevInfo = prev[name] ?? { credibilityRating: 0, totalTransactions: 0 };
+      const newTotal = prevInfo.totalTransactions + 1;
+      const newRating = (prevInfo.credibilityRating * prevInfo.totalTransactions + score) / newTotal;
+
+      return {
+        ...prev,
+        [name]: { credibilityRating: newRating, totalTransactions: newTotal }
+      };
+    });
+
+    const unreviewedId = getUnreviewedRequestIdForSeller(name);
+    if (unreviewedId) {
+      setReviewedRequestIds((prev) => [unreviewedId, ...prev]);
+    }
+
+    setSuccessMessage(`Submitted ${score}-star review for ${name}.`);
+  }
+
+  function getUnreviewedRequestIdForSeller(name: string): number | null {
+    const req = recentRequests.find((r) => r.sellerName === name && !reviewedRequestIds.includes(r.id));
+    return req ? req.id : null;
+  }
+
+  const hasUnreviewedTransaction =
+    selectedSeller != null
+      ? getUnreviewedRequestIdForSeller(selectedSeller.sellerName) !== null
+      : false;
 
   function confirmRequest() {
     if (!selectedListing) {
@@ -204,12 +300,20 @@ export default function Home() {
                       key={listing.id}
                       className="grid gap-3 border-b border-market-ink/10 px-4 py-4 last:border-b-0 md:grid-cols-[1.1fr_0.8fr_0.8fr_0.8fr_1.8fr_0.9fr] md:items-center md:gap-4 md:py-3"
                     >
-                      <button
-                        onClick={() => openListing(listing)}
-                        className="text-left text-lg font-black transition hover:text-market-leaf md:text-base"
-                      >
-                        {listing.sellerName}
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => openListing(listing)}
+                          className="text-left text-lg font-black transition hover:text-market-leaf md:text-base"
+                        >
+                          {listing.sellerName}
+                        </button>
+                        <button
+                          onClick={() => openSellerInfo(listing)}
+                          className="rounded-md border border-market-ink/20 px-2 py-1 text-xs font-semibold text-market-ink/60 transition hover:border-market-ink/40 hover:bg-market-ink/5"
+                        >
+                          Info
+                        </button>
+                      </div>
 
                       <div className="grid grid-cols-3 gap-3 md:contents">
                         <div>
@@ -279,9 +383,15 @@ export default function Home() {
                     key={request.id}
                     className="grid gap-3 border-b border-market-ink/10 px-4 py-4 last:border-b-0 md:grid-cols-[1.1fr_0.8fr_0.8fr_1.9fr_1fr] md:items-center md:gap-4 md:py-3"
                   >
-                    <p className="text-lg font-black md:text-base">
-                      {request.sellerName}
-                    </p>
+                        <div className="flex items-center gap-2">
+                          <p className="text-lg font-black md:text-base">{request.sellerName}</p>
+                          <button
+                            onClick={() => openSellerInfo(request)}
+                            className="rounded-md border border-market-ink/20 px-2 py-1 text-xs font-semibold text-market-ink/60 transition hover:border-market-ink/40 hover:bg-market-ink/5"
+                          >
+                            Info
+                          </button>
+                        </div>
 
                     <div className="grid grid-cols-2 gap-3 md:contents">
                       <div>
@@ -372,6 +482,86 @@ export default function Home() {
                 className="inline-flex flex-1 items-center justify-center rounded-md border border-market-ink/15 bg-white px-5 py-3 font-bold text-market-ink transition hover:border-market-leaf/50 hover:text-market-leaf"
               >
                 Cancel / Back
+              </button>
+            </div>
+          </section>
+        ) : null}
+
+        {view === "seller-info" && selectedSeller ? (
+          <section className="mx-auto w-full max-w-2xl rounded-lg border border-market-ink/10 bg-white p-6 shadow-[0_10px_35px_rgba(23,32,27,0.08)]">
+            <p className="text-sm font-bold uppercase tracking-wide text-market-leaf">
+              Seller information
+            </p>
+            <h2 className="mt-3 text-2xl font-black">
+              {selectedSeller.sellerName}
+            </h2>
+
+            <div className="mt-6 space-y-4">
+              <div className="rounded-md bg-[#f7faf5] p-4">
+                <p className="text-sm text-market-ink/60">Seller credibility rating</p>
+                <p className="mt-2 text-2xl font-black">
+                  {sellerInformation[selectedSeller.sellerName]?.credibilityRating?.toFixed(1) || "—"} ⭐
+                </p>
+              </div>
+              <div className="rounded-md bg-[#f7faf5] p-4">
+                <p className="text-sm text-market-ink/60">Total transactions made</p>
+                <p className="mt-2 text-2xl font-black">
+                  {sellerInformation[selectedSeller.sellerName]?.totalTransactions || "—"}
+                </p>
+              </div>
+
+              {hasUnreviewedTransaction ? (
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    leaveReview(reviewScore);
+                  }}
+                  className="mt-2"
+                >
+                  <label className="block">
+                    <span className="text-sm font-bold text-market-ink/70">
+                      Leave a review (1-5)
+                    </span>
+                    <div className="mt-2 flex items-center gap-3">
+                      <select
+                        value={reviewScore}
+                        onChange={(e) => setReviewScore(Number(e.target.value))}
+                        className="rounded-md border border-market-ink/15 bg-white px-3 py-2 outline-none transition focus:border-market-leaf"
+                      >
+                        <option value={5}>5 - Excellent</option>
+                        <option value={4}>4 - Good</option>
+                        <option value={3}>3 - Okay</option>
+                        <option value={2}>2 - Poor</option>
+                        <option value={1}>1 - Bad</option>
+                      </select>
+
+                      <button
+                        type="submit"
+                        className="inline-flex items-center justify-center rounded-md bg-market-leaf px-4 py-2 font-bold text-white transition hover:bg-[#286b47]"
+                      >
+                        Submit Review
+                      </button>
+                    </div>
+                  </label>
+                </form>
+              ) : (
+                <div className="rounded-md border border-market-ink/10 bg-[#fff8f5] p-4 text-market-ink/75">
+                  <p className="font-semibold">
+                    You can only leave a review after completing a transaction with this seller, and only once per request. Leave another review after making a new request.
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+              <button
+                onClick={() => {
+                  setSelectedSeller(null);
+                  setView("listings");
+                }}
+                className="inline-flex flex-1 items-center justify-center rounded-md border border-market-ink/15 bg-white px-5 py-3 font-bold text-market-ink transition hover:border-market-leaf/50 hover:text-market-leaf"
+              >
+                Back to Listings
               </button>
             </div>
           </section>
