@@ -8,11 +8,14 @@ type Listing = {
   balanceAmount: number;
   askingPrice: number;
   locationNote: string;
+  email: string;
+  phone: string;
 };
 
 type SellerInfo = {
-  credibilityRating: number;
   totalTransactions: number;
+  ratingSum: number;
+  reviewCount: number;
 };
 
 type View = "listings" | "create" | "detail" | "seller-info";
@@ -23,69 +26,76 @@ const initialListings: Listing[] = [
     sellerName: "Maya R.",
     balanceAmount: 42,
     askingPrice: 34,
-    locationNote: "North cafeteria, lunch block transfer"
+    locationNote: "North cafeteria, lunch block transfer",
+    email: "maya.r@school.edu",
+    phone: "(555) 123-4567"
   },
   {
     id: 2,
     sellerName: "Jordan K.",
     balanceAmount: 28,
     askingPrice: 22,
-    locationNote: "Library commons after school"
+    locationNote: "Library commons after school",
+    email: "jordan.k@school.edu",
+    phone: "(555) 234-5678"
   },
   {
     id: 3,
     sellerName: "Sam P.",
     balanceAmount: 65,
     askingPrice: 52,
-    locationNote: "Student atrium, best for weekly lunches"
+    locationNote: "Student atrium, best for weekly lunches",
+    email: "sam.p@school.edu",
+    phone: "(555) 345-6789"
   },
   {
     id: 4,
     sellerName: "Alex T.",
     balanceAmount: 35,
     askingPrice: 28,
-    locationNote: "Main hallway by lockers, mornings only"
+    locationNote: "Main hallway by lockers, mornings only",
+    email: "alex.t@school.edu",
+    phone: "(555) 456-7890"
   },
   {
     id: 5,
     sellerName: "Casey L.",
     balanceAmount: 50,
     askingPrice: 40,
-    locationNote: "West building entrance after classes"
+    locationNote: "West building entrance after classes",
+    email: "casey.l@school.edu",
+    phone: "(555) 567-8901"
   },
   {
     id: 6,
     sellerName: "Riley M.",
     balanceAmount: 72,
     askingPrice: 58,
-    locationNote: "Gym bleachers during lunch"
+    locationNote: "Gym bleachers during lunch",
+    email: "riley.m@school.edu",
+    phone: "(555) 678-9012"
   },
   {
     id: 7,
     sellerName: "Jessie H.",
     balanceAmount: 44,
     askingPrice: 35,
-    locationNote: "Library study area, flexible timing"
+    locationNote: "Library study area, flexible timing",
+    email: "jessie.h@school.edu",
+    phone: "(555) 789-0123"
   },
   {
     id: 8,
     sellerName: "Morgan B.",
     balanceAmount: 80,
     askingPrice: 64,
-    locationNote: "Student center, after 3pm"
+    locationNote: "Student center, after 3pm",
+    email: "morgan.b@school.edu",
+    phone: "(555) 890-1234"
   }
 ];
 
-const initialSellerInformation: { [key: string]: SellerInfo } = {
-  "Maya R.": { credibilityRating: 4.8, totalTransactions: 12 },
-  "Jordan K.": { credibilityRating: 4.5, totalTransactions: 8 },
-  "Sam P.": { credibilityRating: 4.9, totalTransactions: 15 },
-  "Alex T.": { credibilityRating: 4.6, totalTransactions: 10 },
-  "Casey L.": { credibilityRating: 4.7, totalTransactions: 9 },
-  "Riley M.": { credibilityRating: 4.9, totalTransactions: 14 },
-  "Jessie H.": { credibilityRating: 4.4, totalTransactions: 7 },
-  "Morgan B.": { credibilityRating: 5.0, totalTransactions: 18 }
-};
+const initialSellerInformation: { [key: string]: SellerInfo } = {};
 
 const money = new Intl.NumberFormat("en-CA", {
   style: "currency",
@@ -113,11 +123,17 @@ export default function Home() {
   const [reviewScore, setReviewScore] = useState<number>(5);
   const [reviewedRequestIds, setReviewedRequestIds] = useState<number[]>([]);
   const [successMessage, setSuccessMessage] = useState("");
+  const [showContactInfo, setShowContactInfo] = useState(false);
+
+  const selectedSellerInfo = selectedSeller ? sellerInformation[selectedSeller.sellerName] : undefined;
+
   const [form, setForm] = useState({
     sellerName: "",
     balanceAmount: "",
     askingPrice: "",
-    locationNote: ""
+    locationNote: "",
+    email: "",
+    phone: ""
   });
 
   function openListing(listing: Listing) {
@@ -138,13 +154,15 @@ export default function Home() {
     const name = selectedSeller.sellerName;
 
     setSellerInformation((prev) => {
-      const prevInfo = prev[name] ?? { credibilityRating: 0, totalTransactions: 0 };
-      const newTotal = prevInfo.totalTransactions + 1;
-      const newRating = (prevInfo.credibilityRating * prevInfo.totalTransactions + score) / newTotal;
+      const prevInfo = prev[name] ?? { totalTransactions: 0, ratingSum: 0, reviewCount: 0 };
 
       return {
         ...prev,
-        [name]: { credibilityRating: newRating, totalTransactions: newTotal }
+        [name]: {
+          ...prevInfo,
+          ratingSum: prevInfo.ratingSum + score,
+          reviewCount: prevInfo.reviewCount + 1
+        }
       };
     });
 
@@ -181,6 +199,21 @@ export default function Home() {
     setWalletBalance((currentBalance) =>
       currentBalance - selectedListing.askingPrice
     );
+    setSellerInformation((currentInfo) => {
+      const prevInfo = currentInfo[selectedListing.sellerName] ?? {
+        totalTransactions: 0,
+        ratingSum: 0,
+        reviewCount: 0
+      };
+
+      return {
+        ...currentInfo,
+        [selectedListing.sellerName]: {
+          ...prevInfo,
+          totalTransactions: prevInfo.totalTransactions + 1
+        }
+      };
+    });
     setSuccessMessage(
       `Request confirmed for ${selectedListing.sellerName}'s listing.`
     );
@@ -197,6 +230,8 @@ export default function Home() {
     if (
       !form.sellerName.trim() ||
       !form.locationNote.trim() ||
+      !form.email.trim() ||
+      !form.phone.trim() ||
       balanceAmount <= 0 ||
       askingPrice <= 0
     ) {
@@ -209,7 +244,9 @@ export default function Home() {
         sellerName: form.sellerName.trim(),
         balanceAmount,
         askingPrice,
-        locationNote: form.locationNote.trim()
+        locationNote: form.locationNote.trim(),
+        email: form.email.trim(),
+        phone: form.phone.trim()
       },
       ...currentListings
     ]);
@@ -217,7 +254,9 @@ export default function Home() {
       sellerName: "",
       balanceAmount: "",
       askingPrice: "",
-      locationNote: ""
+      locationNote: "",
+      email: "",
+      phone: ""
     });
     setSuccessMessage("Listing created and added to active listings.");
     setView("listings");
@@ -489,24 +528,45 @@ export default function Home() {
 
         {view === "seller-info" && selectedSeller ? (
           <section className="mx-auto w-full max-w-2xl rounded-lg border border-market-ink/10 bg-white p-6 shadow-[0_10px_35px_rgba(23,32,27,0.08)]">
-            <p className="text-sm font-bold uppercase tracking-wide text-market-leaf">
-              Seller information
-            </p>
-            <h2 className="mt-3 text-2xl font-black">
-              {selectedSeller.sellerName}
-            </h2>
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-sm font-bold uppercase tracking-wide text-market-leaf">
+                  Seller information
+                </p>
+                <h2 className="mt-3 text-2xl font-black">
+                  {selectedSeller.sellerName}
+                </h2>
+              </div>
+              <button
+                onClick={() => setShowContactInfo(!showContactInfo)}
+                className="rounded-md bg-market-ink px-4 py-2 text-sm font-bold text-white transition hover:bg-market-leaf"
+              >
+                Contact Info
+              </button>
+            </div>
 
             <div className="mt-6 space-y-4">
+              {showContactInfo ? (
+                <div className="rounded-md bg-market-mint p-4 border border-market-leaf/30">
+                  <p className="text-sm text-market-ink/60">Email</p>
+                  <p className="mt-1 font-bold text-market-leaf">{selectedSeller.email}</p>
+                  <p className="mt-3 text-sm text-market-ink/60">Phone</p>
+                  <p className="mt-1 font-bold text-market-leaf">{selectedSeller.phone}</p>
+                </div>
+              ) : null}
+
               <div className="rounded-md bg-[#f7faf5] p-4">
                 <p className="text-sm text-market-ink/60">Seller credibility rating</p>
                 <p className="mt-2 text-2xl font-black">
-                  {sellerInformation[selectedSeller.sellerName]?.credibilityRating?.toFixed(1) || "—"} ⭐
+                  {selectedSellerInfo?.reviewCount
+                    ? (selectedSellerInfo.ratingSum / selectedSellerInfo.reviewCount).toFixed(1)
+                    : "—"} ⭐
                 </p>
               </div>
               <div className="rounded-md bg-[#f7faf5] p-4">
                 <p className="text-sm text-market-ink/60">Total transactions made</p>
                 <p className="mt-2 text-2xl font-black">
-                  {sellerInformation[selectedSeller.sellerName]?.totalTransactions || "—"}
+                  {selectedSellerInfo?.totalTransactions ?? 0}
                 </p>
               </div>
 
@@ -557,6 +617,7 @@ export default function Home() {
               <button
                 onClick={() => {
                   setSelectedSeller(null);
+                  setShowContactInfo(false);
                   setView("listings");
                 }}
                 className="inline-flex flex-1 items-center justify-center rounded-md border border-market-ink/15 bg-white px-5 py-3 font-bold text-market-ink transition hover:border-market-leaf/50 hover:text-market-leaf"
@@ -641,6 +702,40 @@ export default function Home() {
                 />
               </label>
 
+              <div className="grid gap-4 sm:grid-cols-2">
+                <label className="block">
+                  <span className="text-sm font-bold text-market-ink/70">
+                    Email
+                  </span>
+                  <input
+                    required
+                    type="email"
+                    value={form.email}
+                    onChange={(event) =>
+                      setForm({ ...form, email: event.target.value })
+                    }
+                    className="mt-2 w-full rounded-md border border-market-ink/15 bg-white px-4 py-3 outline-none transition focus:border-market-leaf"
+                    placeholder="e.g. taylor.m@school.edu"
+                  />
+                </label>
+
+                <label className="block">
+                  <span className="text-sm font-bold text-market-ink/70">
+                    Phone
+                  </span>
+                  <input
+                    required
+                    type="tel"
+                    value={form.phone}
+                    onChange={(event) =>
+                      setForm({ ...form, phone: event.target.value })
+                    }
+                    className="mt-2 w-full rounded-md border border-market-ink/15 bg-white px-4 py-3 outline-none transition focus:border-market-leaf"
+                    placeholder="e.g. (555) 123-4567"
+                  />
+                </label>
+              </div>
+
               <div className="flex flex-col gap-3 pt-2 sm:flex-row">
                 <button
                   type="submit"
@@ -655,7 +750,9 @@ export default function Home() {
                       sellerName: "",
                       balanceAmount: "",
                       askingPrice: "",
-                      locationNote: ""
+                      locationNote: "",
+                      email: "",
+                      phone: ""
                     });
                     setView("listings");
                   }}
