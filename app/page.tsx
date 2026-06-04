@@ -198,8 +198,7 @@ export default function Home() {
       ...currentRequests
     ]);
     setFlexFunds((currentBalance) =>
-  currentBalance - selectedListing.askingPrice
-  );
+      currentBalance - selectedListing.askingPrice
     );
     setSellerInformation((currentInfo) => {
       const prevInfo = currentInfo[selectedListing.sellerName] ?? {
