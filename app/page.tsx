@@ -235,6 +235,28 @@ export default function Home() {
     setSelectedListing(null);
     setView("listings");
   }
+  const filteredListings = listings.filter((l) => {
+    const minBal = Number(filters.minBalance);
+    const maxAsk = Number(filters.maxAsking);
+
+    if (filters.minBalance !== "" && !Number.isNaN(minBal)) {
+      if (l.balanceAmount < minBal) return false;
+    }
+
+    if (filters.maxAsking !== "" && !Number.isNaN(maxAsk)) {
+      if (l.askingPrice > maxAsk) return false;
+    }
+
+    return true;
+  });
+
+  function clearFilters() {
+    setFilters({ minBalance: "", maxAsking: "" });
+  }
+
+  function applyAffordableFilter() {
+    setFilters((f) => ({ ...f, maxAsking: String(walletBalance) }));
+  }
 
   function openDeliveryModal(requestId: number) {
     setDeliveryRequestId(requestId);
