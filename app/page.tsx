@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { FormEvent, useState } from "react";
 
@@ -252,7 +252,7 @@ export default function Home() {
     if (!req) return;
 
     // Refund buyer
-    setWalletBalance((bal) => bal + req.askingPrice);
+    setFlexFunds((bal) => bal + req.askingPrice);
 
     // Remove the request from recentRequests
     setRecentRequests((current) => current.filter((r) => r.id !== requestId));
@@ -411,7 +411,7 @@ export default function Home() {
               <div className="rounded-lg border border-market-ink/10 bg-white p-4">
                 <p className="text-sm text-market-ink/60">My wallet balance</p>
                 <p className="mt-1 text-2xl font-black">
-                  {money.format(walletBalance)}
+                  {money.format(flexFunds)}
                 </p>
               </div>
               <div className="rounded-lg border border-market-ink/10 bg-white p-4">
@@ -683,7 +683,7 @@ export default function Home() {
                 <p className="mt-2 text-2xl font-black">
                   {selectedSellerInfo?.reviewCount
                     ? (selectedSellerInfo.ratingSum / selectedSellerInfo.reviewCount).toFixed(1)
-                    : "—"} ⭐
+                    : "N/A"} stars
                 </p>
               </div>
               <div className="rounded-md bg-[#f7faf5] p-4">
@@ -760,7 +760,7 @@ export default function Home() {
 
             <div className="mt-4 space-y-3 text-market-ink/80">
               <p>
-                You already have a listing under the name <span className="font-bold">"{pendingListing.sellerName}"</span>.
+                You already have a listing under the name <span className="font-bold">&quot;{pendingListing.sellerName}&quot;</span>.
               </p>
               <p>
                 Submitting this new listing will replace your previous one with:
@@ -823,7 +823,7 @@ export default function Home() {
                     onClick={() => reportNotReceived(deliveryRequest.id)}
                     className="inline-flex flex-1 items-center justify-center rounded-md border border-market-ink/15 bg-white px-5 py-3 font-bold text-market-ink transition hover:border-market-amber/40 hover:text-market-amber"
                   >
-                    I haven't received — Refund
+                    I haven&apos;t received - Refund
                   </button>
                   <button
                     onClick={closeDeliveryModal}
@@ -977,3 +977,4 @@ export default function Home() {
     </main>
   );
 }
+
