@@ -84,8 +84,7 @@ export default function Home() {
       ...currentRequests
     ]);
     setFlexFunds((currentBalance) =>
-  currentBalance - selectedListing.askingPrice
-  );
+      currentBalance - selectedListing.askingPrice
     );
     setSuccessMessage(
       `Request confirmed for ${selectedListing.sellerName}'s listing.`
