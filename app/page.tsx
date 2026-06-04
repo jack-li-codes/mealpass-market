@@ -143,6 +143,8 @@ export default function Home() {
   const [currentUserSellerName, setCurrentUserSellerName] = useState<string | null>(null);
   const [showDeliveryModal, setShowDeliveryModal] = useState(false);
   const [deliveryRequestId, setDeliveryRequestId] = useState<number | null>(null);
+  const [showWalletPanel, setShowWalletPanel] = useState(false);
+  const [showAllListings, setShowAllListings] = useState(false);
 
   function openListing(listing: Listing) {
     setSuccessMessage("");
@@ -321,6 +323,13 @@ export default function Home() {
     const existingListing = listings.find(
       (listing) => listing.sellerName === newListing.sellerName
     );
+    const availableMealPlanBalance =
+      mealPlanBalance + (existingListing?.balanceAmount ?? 0);
+
+    if (balanceAmount > availableMealPlanBalance) {
+      setSuccessMessage("Not enough Meal Plan Balance to create this listing.");
+      return;
+    }
 
     if (existingListing) {
       setPendingListing(newListing);
@@ -331,7 +340,13 @@ export default function Home() {
   }
 
   function createListing(listing: Listing) {
+    if (listing.balanceAmount > mealPlanBalance) {
+      setSuccessMessage("Not enough Meal Plan Balance to create this listing.");
+      return;
+    }
+
     setListings((currentListings) => [listing, ...currentListings]);
+    setMealPlanBalance((currentBalance) => currentBalance - listing.balanceAmount);
     setCurrentUserSellerName(listing.sellerName);
     setForm({
       sellerName: "",
@@ -347,12 +362,28 @@ export default function Home() {
 
   function confirmReplacement() {
     if (pendingListing) {
+      const existingListing = listings.find(
+        (listing) => listing.sellerName === pendingListing.sellerName
+      );
+      const restoredBalance = existingListing?.balanceAmount ?? 0;
+
+      if (pendingListing.balanceAmount > mealPlanBalance + restoredBalance) {
+        setSuccessMessage("Not enough Meal Plan Balance to update this listing.");
+        setShowConfirmation(false);
+        setPendingListing(null);
+        return;
+      }
+
       setListings((currentListings) =>
         currentListings.map((listing) =>
           listing.sellerName === pendingListing.sellerName
             ? pendingListing
             : listing
         )
+      );
+      setMealPlanBalance(
+        (currentBalance) =>
+          currentBalance + restoredBalance - pendingListing.balanceAmount
       );
       setCurrentUserSellerName(pendingListing.sellerName);
       setForm({
@@ -373,6 +404,7 @@ export default function Home() {
   }
 
   const deliveryRequest = deliveryRequestId ? recentRequests.find((r) => r.id === deliveryRequestId) ?? null : null;
+  const visibleListings = showAllListings ? listings : listings.slice(0, 5);
 
   return (
     <main className="min-h-screen bg-[#f7faf5] text-market-ink">
@@ -387,16 +419,46 @@ export default function Home() {
               integration.
             </p>
           </div>
-          <button
-            onClick={() => {
-              setSuccessMessage("");
-              setSelectedListing(null);
-              setView("create");
-            }}
-            className="inline-flex items-center justify-center rounded-md bg-market-leaf px-5 py-3 font-bold text-white transition hover:bg-[#286b47]"
-          >
-            Create Listing
-          </button>
+          <div className="relative flex flex-col gap-3 sm:flex-row sm:items-center">
+            <button
+              onClick={() => setShowWalletPanel((current) => !current)}
+              className="inline-flex items-center justify-center rounded-md border border-market-ink/15 bg-white px-5 py-3 font-bold text-market-ink transition hover:border-market-leaf/40 hover:text-market-leaf"
+            >
+              Wallet
+            </button>
+            <button
+              onClick={() => {
+                setSuccessMessage("");
+                setSelectedListing(null);
+                setView("create");
+              }}
+              className="inline-flex items-center justify-center rounded-md bg-market-leaf px-5 py-3 font-bold text-white transition hover:bg-[#286b47]"
+            >
+              Create Listing
+            </button>
+
+            {showWalletPanel ? (
+              <div className="absolute right-0 top-full z-10 mt-3 w-72 rounded-lg border border-market-ink/10 bg-white p-4 shadow-[0_18px_45px_rgba(23,32,27,0.12)]">
+                <div className="grid gap-3">
+                  <div>
+                    <p className="text-sm text-market-ink/60">Flex Funds</p>
+                    <p className="mt-1 text-2xl font-black">
+                      {money.format(flexFunds)}
+                    </p>
+                  </div>
+                  <div className="border-t border-market-ink/10 pt-3">
+                    <p className="text-sm text-market-ink/60">Meal Plan Balance</p>
+                    <p className="mt-1 text-xl font-black">
+                      {money.format(mealPlanBalance)}
+                    </p>
+                  </div>
+                  <p className="text-xs leading-5 text-market-ink/55">
+                    Mock balances only. No real money is used.
+                  </p>
+                </div>
+              </div>
+            ) : null}
+          </div>
         </header>
 
         {successMessage ? (
@@ -407,19 +469,6 @@ export default function Home() {
 
         {view === "listings" ? (
           <section className="space-y-5">
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="rounded-lg border border-market-ink/10 bg-white p-4">
-                <p className="text-sm text-market-ink/60">My wallet balance</p>
-                <p className="mt-1 text-2xl font-black">
-                  {money.format(flexFunds)}
-                </p>
-              </div>
-              <div className="rounded-lg border border-market-ink/10 bg-white p-4">
-                <p className="text-sm text-market-ink/60">Request method</p>
-                <p className="mt-1 text-2xl font-black">Manual</p>
-              </div>
-            </div>
-
             <div className="flex items-center justify-between gap-4">
               <h2 className="text-2xl font-black">Active Listings <span className="text-market-ink/60">({listings.length})</span></h2>
               <p className="text-sm text-market-ink/60">Mock data only</p>
@@ -436,7 +485,7 @@ export default function Home() {
                   <span className="text-right">Action</span>
                 </div>
 
-                {listings.map((listing) => {
+                {visibleListings.map((listing) => {
                   const discount = getDiscount(
                     listing.balanceAmount,
                     listing.askingPrice
@@ -515,6 +564,17 @@ export default function Home() {
                 </p>
               </div>
             )}
+
+            {listings.length > 5 ? (
+              <div className="flex justify-center">
+                <button
+                  onClick={() => setShowAllListings((current) => !current)}
+                  className="rounded-md border border-market-ink/15 bg-white px-4 py-2.5 text-sm font-bold text-market-ink transition hover:border-market-leaf/40 hover:text-market-leaf"
+                >
+                  {showAllListings ? "Show fewer listings" : "Show more listings"}
+                </button>
+              </div>
+            ) : null}
 
             <div className="flex items-center justify-between gap-4 pt-2">
               <h2 className="text-2xl font-black">Recent Requests <span className="text-market-ink/60">({recentRequests.length})</span></h2>
