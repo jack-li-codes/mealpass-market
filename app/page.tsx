@@ -64,6 +64,12 @@ export default function Home() {
     locationNote: ""
   });
 
+  // New: filter state for searching by balanceAmount / askingPrice
+  const [filters, setFilters] = useState({
+    minBalance: "",
+    maxAsking: ""
+  });
+
   function openListing(listing: Listing) {
     setSuccessMessage("");
     setSelectedListing(listing);
@@ -127,6 +133,30 @@ export default function Home() {
     setView("listings");
   }
 
+  // Derived filtered listings based on search inputs
+  const filteredListings = listings.filter((l) => {
+    const minBal = Number(filters.minBalance);
+    const maxAsk = Number(filters.maxAsking);
+
+    if (filters.minBalance !== "" && !Number.isNaN(minBal)) {
+      if (l.balanceAmount < minBal) return false;
+    }
+
+    if (filters.maxAsking !== "" && !Number.isNaN(maxAsk)) {
+      if (l.askingPrice > maxAsk) return false;
+    }
+
+    return true;
+  });
+
+  function clearFilters() {
+    setFilters({ minBalance: "", maxAsking: "" });
+  }
+
+  function applyAffordableFilter() {
+    setFilters((f) => ({ ...f, maxAsking: String(walletBalance) }));
+  }
+
   return (
     <main className="min-h-screen bg-[#f7faf5] text-market-ink">
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-5 py-6 sm:px-8 lg:px-10">
@@ -182,7 +212,63 @@ export default function Home() {
               <p className="text-sm text-market-ink/60">Mock data only</p>
             </div>
 
-            {listings.length > 0 ? (
+            {/* New: Filters UI */}
+            <div className="flex flex-col gap-3 rounded-lg border border-market-ink/10 bg-white p-4 md:flex-row md:items-center md:justify-between">
+              <div className="flex gap-3">
+                <label className="flex items-center gap-2">
+                  <span className="text-sm text-market-ink/70">Min balance</span>
+                  <input
+                    type="number"
+                    min="0"
+                    value={filters.minBalance}
+                    onChange={(e) =>
+                      setFilters({ ...filters, minBalance: e.target.value })
+                    }
+                    placeholder="e.g. 30"
+                    className="ml-2 w-28 rounded-md border border-market-ink/15 bg-white px-3 py-2 outline-none transition focus:border-market-leaf"
+                  />
+                </label>
+
+                <label className="flex items-center gap-2">
+                  <span className="text-sm text-market-ink/70">Max asking</span>
+                  <input
+                    type="number"
+                    min="0"
+                    value={filters.maxAsking}
+                    onChange={(e) =>
+                      setFilters({ ...filters, maxAsking: e.target.value })
+                    }
+                    placeholder="e.g. 40"
+                    className="ml-2 w-28 rounded-md border border-market-ink/15 bg-white px-3 py-2 outline-none transition focus:border-market-leaf"
+                  />
+                </label>
+              </div>
+
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={applyAffordableFilter}
+                  className="inline-flex items-center justify-center rounded-md bg-market-leaf px-3 py-2 font-bold text-white transition hover:bg-[#286b47]"
+                >
+                  Affordable for me
+                </button>
+                <button
+                  type="button"
+                  onClick={clearFilters}
+                  className="inline-flex items-center justify-center rounded-md border border-market-ink/15 bg-white px-3 py-2 font-bold text-market-ink transition hover:border-market-leaf/50 hover:text-market-leaf"
+                >
+                  Clear filters
+                </button>
+              </div>
+            </div>
+
+            {/* Show filtered count/help */}
+            <div className="text-sm text-market-ink/65">
+              Showing {filteredListings.length} of {listings.length} listings
+              {filters.minBalance || filters.maxAsking ? " (filtered)" : ""}
+            </div>
+
+            {filteredListings.length > 0 ? (
               <div className="overflow-hidden rounded-lg border border-market-ink/10 bg-white shadow-[0_10px_35px_rgba(23,32,27,0.06)]">
                 <div className="hidden grid-cols-[1.1fr_0.8fr_0.8fr_0.8fr_1.8fr_0.9fr] gap-4 border-b border-market-ink/10 bg-[#f7faf5] px-4 py-3 text-sm font-bold text-market-ink/65 md:grid">
                   <span>Seller</span>
@@ -193,7 +279,7 @@ export default function Home() {
                   <span className="text-right">Action</span>
                 </div>
 
-                {listings.map((listing) => {
+                {filteredListings.map((listing) => {
                   const discount = getDiscount(
                     listing.balanceAmount,
                     listing.askingPrice
@@ -252,9 +338,9 @@ export default function Home() {
               </div>
             ) : (
               <div className="rounded-lg border border-dashed border-market-ink/20 bg-white p-8 text-center">
-                <h3 className="text-xl font-black">No active listings</h3>
+                <h3 className="text-xl font-black">No matching listings</h3>
                 <p className="mt-2 text-market-ink/65">
-                  Create a mock listing to add it to the marketplace.
+                  Try clearing filters or adjust the minimum balance / maximum asking price.
                 </p>
               </div>
             )}
