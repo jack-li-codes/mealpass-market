@@ -311,12 +311,6 @@ export default function Home() {
   </p>
 </div>
               <div className="rounded-lg border border-market-ink/10 bg-white p-4">
-                <p className="text-sm text-market-ink/60">My wallet balance</p>
-                <p className="mt-1 text-2xl font-black">
-                  {money.format(walletBalance)}
-                </p>
-              </div>
-              <div className="rounded-lg border border-market-ink/10 bg-white p-4">
                 <p className="text-sm text-market-ink/60">Request method</p>
                 <p className="mt-1 text-2xl font-black">Manual</p>
               </div>
