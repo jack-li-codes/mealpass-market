@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { FormEvent, useState } from "react";
 
@@ -8,9 +8,18 @@ type Listing = {
   balanceAmount: number;
   askingPrice: number;
   locationNote: string;
+  email: string;
+  phone: string;
+  status?: "pending" | "completed" | "refunded";
 };
 
-type View = "listings" | "create" | "detail";
+type SellerInfo = {
+  totalTransactions: number;
+  ratingSum: number;
+  reviewCount: number;
+};
+
+type View = "listings" | "create" | "detail" | "seller-info";
 
 const initialListings: Listing[] = [
   {
@@ -18,28 +27,82 @@ const initialListings: Listing[] = [
     sellerName: "Maya R.",
     balanceAmount: 42,
     askingPrice: 34,
-    locationNote: "North cafeteria, lunch block transfer"
+    locationNote: "North cafeteria, lunch block transfer",
+    email: "maya.r@school.edu",
+    phone: "(555) 123-4567"
   },
   {
     id: 2,
     sellerName: "Jordan K.",
     balanceAmount: 28,
     askingPrice: 22,
-    locationNote: "Library commons after school"
+    locationNote: "Library commons after school",
+    email: "jordan.k@school.edu",
+    phone: "(555) 234-5678"
   },
   {
     id: 3,
     sellerName: "Sam P.",
     balanceAmount: 65,
     askingPrice: 52,
-    locationNote: "Student atrium, best for weekly lunches"
+    locationNote: "Student atrium, best for weekly lunches",
+    email: "sam.p@school.edu",
+    phone: "(555) 345-6789"
+  },
+  {
+    id: 4,
+    sellerName: "Alex T.",
+    balanceAmount: 35,
+    askingPrice: 28,
+    locationNote: "Main hallway by lockers, mornings only",
+    email: "alex.t@school.edu",
+    phone: "(555) 456-7890"
+  },
+  {
+    id: 5,
+    sellerName: "Casey L.",
+    balanceAmount: 50,
+    askingPrice: 40,
+    locationNote: "West building entrance after classes",
+    email: "casey.l@school.edu",
+    phone: "(555) 567-8901"
+  },
+  {
+    id: 6,
+    sellerName: "Riley M.",
+    balanceAmount: 72,
+    askingPrice: 58,
+    locationNote: "Gym bleachers during lunch",
+    email: "riley.m@school.edu",
+    phone: "(555) 678-9012"
+  },
+  {
+    id: 7,
+    sellerName: "Jessie H.",
+    balanceAmount: 44,
+    askingPrice: 35,
+    locationNote: "Library study area, flexible timing",
+    email: "jessie.h@school.edu",
+    phone: "(555) 789-0123"
+  },
+  {
+    id: 8,
+    sellerName: "Morgan B.",
+    balanceAmount: 80,
+    askingPrice: 64,
+    locationNote: "Student center, after 3pm",
+    email: "morgan.b@school.edu",
+    phone: "(555) 890-1234"
   }
 ];
+
+const initialSellerInformation: { [key: string]: SellerInfo } = {};
 
 const money = new Intl.NumberFormat("en-CA", {
   style: "currency",
   currency: "CAD",
-  maximumFractionDigits: 0
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2
 });
 
 function getDiscount(balanceAmount: number, askingPrice: number) {
@@ -53,16 +116,33 @@ function getDiscount(balanceAmount: number, askingPrice: number) {
 export default function Home() {
   const [listings, setListings] = useState<Listing[]>(initialListings);
   const [recentRequests, setRecentRequests] = useState<Listing[]>([]);
-  const [walletBalance, setWalletBalance] = useState(100);
+  const [flexFunds, setFlexFunds] = useState(100);
+  const [mealPlanBalance, setMealPlanBalance] = useState(200);
   const [view, setView] = useState<View>("listings");
   const [selectedListing, setSelectedListing] = useState<Listing | null>(null);
+  const [selectedSeller, setSelectedSeller] = useState<Listing | null>(null);
+  const [sellerInformation, setSellerInformation] = useState<{ [key: string]: SellerInfo }>(initialSellerInformation);
+  const [reviewScore, setReviewScore] = useState<number>(5);
+  const [reviewedRequestIds, setReviewedRequestIds] = useState<number[]>([]);
+  const [reviewedScores, setReviewedScores] = useState<{ [key: number]: number }>({});
   const [successMessage, setSuccessMessage] = useState("");
+  const [showContactInfo, setShowContactInfo] = useState(false);
+
+  const selectedSellerInfo = selectedSeller ? sellerInformation[selectedSeller.sellerName] : undefined;
+
   const [form, setForm] = useState({
     sellerName: "",
     balanceAmount: "",
     askingPrice: "",
-    locationNote: ""
+    locationNote: "",
+    email: "",
+    phone: ""
   });
+  const [showConfirmation, setShowConfirmation] = useState(false);
+  const [pendingListing, setPendingListing] = useState<Listing | null>(null);
+  const [currentUserSellerName, setCurrentUserSellerName] = useState<string | null>(null);
+  const [showDeliveryModal, setShowDeliveryModal] = useState(false);
+  const [deliveryRequestId, setDeliveryRequestId] = useState<number | null>(null);
 
   // New: filter state for searching by balanceAmount / askingPrice
   const [filters, setFilters] = useState({
@@ -76,6 +156,49 @@ export default function Home() {
     setView("detail");
   }
 
+  function openSellerInfo(listing: Listing) {
+    setSuccessMessage("");
+    setSelectedSeller(listing);
+    setView("seller-info");
+  }
+
+  function leaveReview(score: number) {
+    if (!selectedSeller) return;
+
+    const name = selectedSeller.sellerName;
+
+    setSellerInformation((prev) => {
+      const prevInfo = prev[name] ?? { totalTransactions: 0, ratingSum: 0, reviewCount: 0 };
+
+      return {
+        ...prev,
+        [name]: {
+          ...prevInfo,
+          ratingSum: prevInfo.ratingSum + score,
+          reviewCount: prevInfo.reviewCount + 1
+        }
+      };
+    });
+
+    const unreviewedId = getUnreviewedRequestIdForSeller(name);
+    if (unreviewedId) {
+      setReviewedRequestIds((prev) => [unreviewedId, ...prev]);
+      setReviewedScores((prev) => ({ ...prev, [unreviewedId]: score }));
+    }
+
+    setSuccessMessage(`Submitted ${score}-star review for ${name}.`);
+  }
+
+  function getUnreviewedRequestIdForSeller(name: string): number | null {
+    const req = recentRequests.find((r) => r.sellerName === name && !reviewedRequestIds.includes(r.id));
+    return req ? req.id : null;
+  }
+
+  const hasUnreviewedTransaction =
+    selectedSeller != null
+      ? getUnreviewedRequestIdForSeller(selectedSeller.sellerName) !== null
+      : false;
+
   function confirmRequest() {
     if (!selectedListing) {
       return;
@@ -85,17 +208,93 @@ export default function Home() {
       currentListings.filter((listing) => listing.id !== selectedListing.id)
     );
     setRecentRequests((currentRequests) => [
-      selectedListing,
+      { ...selectedListing, status: "pending" },
       ...currentRequests
     ]);
-    setWalletBalance((currentBalance) =>
+    setFlexFunds((currentBalance) =>
       currentBalance - selectedListing.askingPrice
-    );
+  );
+    setSellerInformation((currentInfo) => {
+      const prevInfo = currentInfo[selectedListing.sellerName] ?? {
+        totalTransactions: 0,
+        ratingSum: 0,
+        reviewCount: 0
+      };
+
+      return {
+        ...currentInfo,
+        [selectedListing.sellerName]: {
+          ...prevInfo,
+          totalTransactions: prevInfo.totalTransactions + 1
+        }
+      };
+    });
     setSuccessMessage(
       `Request confirmed for ${selectedListing.sellerName}'s listing.`
     );
     setSelectedListing(null);
     setView("listings");
+  }
+
+  function openDeliveryModal(requestId: number) {
+    setDeliveryRequestId(requestId);
+    setShowDeliveryModal(true);
+  }
+
+  function closeDeliveryModal() {
+    setDeliveryRequestId(null);
+    setShowDeliveryModal(false);
+  }
+
+  function confirmReceived(requestId: number) {
+    setRecentRequests((current) =>
+      current.map((r) => (r.id === requestId ? { ...r, status: "completed" } : r))
+    );
+    closeDeliveryModal();
+  }
+
+  function reportNotReceived(requestId: number) {
+    const req = recentRequests.find((r) => r.id === requestId);
+    if (!req) return;
+
+    // Refund buyer
+    setFlexFunds((bal) => bal + req.askingPrice);
+
+    // Remove the request from recentRequests
+    setRecentRequests((current) => current.filter((r) => r.id !== requestId));
+
+    // Re-add seller's listing back to active listings (remove any status)
+    setListings((current) => [{ ...req, status: undefined }, ...current]);
+
+    // Revert seller stats: decrement totalTransactions and any review added for this request
+    setSellerInformation((prev) => {
+      const prevInfo = prev[req.sellerName];
+      if (!prevInfo) return prev;
+
+      const updated: SellerInfo = { ...prevInfo };
+      if (updated.totalTransactions && updated.totalTransactions > 0) {
+        updated.totalTransactions = updated.totalTransactions - 1;
+      }
+
+      const reviewedScore = reviewedScores[requestId];
+      if (reviewedScore != null && updated.reviewCount && updated.reviewCount > 0) {
+        updated.reviewCount = Math.max(0, updated.reviewCount - 1);
+        updated.ratingSum = Math.max(0, updated.ratingSum - reviewedScore);
+      }
+
+      return { ...prev, [req.sellerName]: updated };
+    });
+
+    // Clean up reviewed ids and scores for this request
+    setReviewedRequestIds((prev) => prev.filter((id) => id !== requestId));
+    setReviewedScores((prev) => {
+      const copy = { ...prev };
+      delete copy[requestId];
+      return copy;
+    });
+
+    setSuccessMessage("Money refunded to your wallet.");
+    closeDeliveryModal();
   }
 
   function submitListing(event: FormEvent<HTMLFormElement>) {
@@ -107,55 +306,79 @@ export default function Home() {
     if (
       !form.sellerName.trim() ||
       !form.locationNote.trim() ||
+      !form.email.trim() ||
+      !form.phone.trim() ||
       balanceAmount <= 0 ||
       askingPrice <= 0
     ) {
       return;
     }
 
-    setListings((currentListings) => [
-      {
-        id: Date.now(),
-        sellerName: form.sellerName.trim(),
-        balanceAmount,
-        askingPrice,
-        locationNote: form.locationNote.trim()
-      },
-      ...currentListings
-    ]);
+    const newListing: Listing = {
+      id: Date.now(),
+      sellerName: form.sellerName.trim(),
+      balanceAmount,
+      askingPrice,
+      locationNote: form.locationNote.trim(),
+      email: form.email.trim(),
+      phone: form.phone.trim()
+    };
+
+    const existingListing = listings.find(
+      (listing) => listing.sellerName === newListing.sellerName
+    );
+
+    if (existingListing) {
+      setPendingListing(newListing);
+      setShowConfirmation(true);
+    } else {
+      createListing(newListing);
+    }
+  }
+
+  function createListing(listing: Listing) {
+    setListings((currentListings) => [listing, ...currentListings]);
+    setCurrentUserSellerName(listing.sellerName);
     setForm({
       sellerName: "",
       balanceAmount: "",
       askingPrice: "",
-      locationNote: ""
+      locationNote: "",
+      email: "",
+      phone: ""
     });
     setSuccessMessage("Listing created and added to active listings.");
     setView("listings");
   }
 
-  // Derived filtered listings based on search inputs
-  const filteredListings = listings.filter((l) => {
-    const minBal = Number(filters.minBalance);
-    const maxAsk = Number(filters.maxAsking);
-
-    if (filters.minBalance !== "" && !Number.isNaN(minBal)) {
-      if (l.balanceAmount < minBal) return false;
+  function confirmReplacement() {
+    if (pendingListing) {
+      setListings((currentListings) =>
+        currentListings.map((listing) =>
+          listing.sellerName === pendingListing.sellerName
+            ? pendingListing
+            : listing
+        )
+      );
+      setCurrentUserSellerName(pendingListing.sellerName);
+      setForm({
+        sellerName: "",
+        balanceAmount: "",
+        askingPrice: "",
+        locationNote: "",
+        email: "",
+        phone: ""
+      });
+      setSuccessMessage(
+        `Listing for ${pendingListing.sellerName} has been updated.`
+      );
+      setShowConfirmation(false);
+      setPendingListing(null);
+      setView("listings");
     }
-
-    if (filters.maxAsking !== "" && !Number.isNaN(maxAsk)) {
-      if (l.askingPrice > maxAsk) return false;
-    }
-
-    return true;
-  });
-
-  function clearFilters() {
-    setFilters({ minBalance: "", maxAsking: "" });
   }
 
-  function applyAffordableFilter() {
-    setFilters((f) => ({ ...f, maxAsking: String(walletBalance) }));
-  }
+  const deliveryRequest = deliveryRequestId ? recentRequests.find((r) => r.id === deliveryRequestId) ?? null : null;
 
   return (
     <main className="min-h-screen bg-[#f7faf5] text-market-ink">
@@ -190,15 +413,11 @@ export default function Home() {
 
         {view === "listings" ? (
           <section className="space-y-5">
-            <div className="grid gap-4 sm:grid-cols-3">
-              <div className="rounded-lg border border-market-ink/10 bg-white p-4">
-                <p className="text-sm text-market-ink/60">Active listings</p>
-                <p className="mt-1 text-2xl font-black">{listings.length}</p>
-              </div>
+            <div className="grid gap-4 sm:grid-cols-2">
               <div className="rounded-lg border border-market-ink/10 bg-white p-4">
                 <p className="text-sm text-market-ink/60">My wallet balance</p>
                 <p className="mt-1 text-2xl font-black">
-                  {money.format(walletBalance)}
+                  {money.format(flexFunds)}
                 </p>
               </div>
               <div className="rounded-lg border border-market-ink/10 bg-white p-4">
@@ -208,7 +427,7 @@ export default function Home() {
             </div>
 
             <div className="flex items-center justify-between gap-4">
-              <h2 className="text-2xl font-black">Active Listings</h2>
+              <h2 className="text-2xl font-black">Active Listings <span className="text-market-ink/60">({listings.length})</span></h2>
               <p className="text-sm text-market-ink/60">Mock data only</p>
             </div>
 
@@ -290,12 +509,20 @@ export default function Home() {
                       key={listing.id}
                       className="grid gap-3 border-b border-market-ink/10 px-4 py-4 last:border-b-0 md:grid-cols-[1.1fr_0.8fr_0.8fr_0.8fr_1.8fr_0.9fr] md:items-center md:gap-4 md:py-3"
                     >
-                      <button
-                        onClick={() => openListing(listing)}
-                        className="text-left text-lg font-black transition hover:text-market-leaf md:text-base"
-                      >
-                        {listing.sellerName}
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => openListing(listing)}
+                          className="text-left text-lg font-black transition hover:text-market-leaf md:text-base"
+                        >
+                          {listing.sellerName}
+                        </button>
+                        <button
+                          onClick={() => openSellerInfo(listing)}
+                          className="rounded-md border border-market-ink/20 px-2 py-1 text-xs font-semibold text-market-ink/60 transition hover:border-market-ink/40 hover:bg-market-ink/5"
+                        >
+                          Info
+                        </button>
+                      </div>
 
                       <div className="grid grid-cols-3 gap-3 md:contents">
                         <div>
@@ -326,12 +553,18 @@ export default function Home() {
                         {listing.locationNote}
                       </p>
 
-                      <button
-                        onClick={() => openListing(listing)}
-                        className="rounded-md bg-market-ink px-4 py-2.5 text-sm font-bold text-white transition hover:bg-market-leaf md:justify-self-end"
-                      >
-                        Buy / Request
-                      </button>
+                      {currentUserSellerName === listing.sellerName ? (
+                        <div className="rounded-md bg-market-ink/10 px-4 py-2.5 text-sm font-bold text-market-ink/60 md:justify-self-end">
+                          My Listing
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => openListing(listing)}
+                          className="rounded-md bg-market-ink px-4 py-2.5 text-sm font-bold text-white transition hover:bg-market-leaf md:justify-self-end"
+                        >
+                          Buy / Request
+                        </button>
+                      )}
                     </div>
                   );
                 })}
@@ -346,7 +579,7 @@ export default function Home() {
             )}
 
             <div className="flex items-center justify-between gap-4 pt-2">
-              <h2 className="text-2xl font-black">Recent Requests</h2>
+              <h2 className="text-2xl font-black">Recent Requests <span className="text-market-ink/60">({recentRequests.length})</span></h2>
               <p className="text-sm text-market-ink/60">Pending manual meetup</p>
             </div>
 
@@ -365,9 +598,15 @@ export default function Home() {
                     key={request.id}
                     className="grid gap-3 border-b border-market-ink/10 px-4 py-4 last:border-b-0 md:grid-cols-[1.1fr_0.8fr_0.8fr_1.9fr_1fr] md:items-center md:gap-4 md:py-3"
                   >
-                    <p className="text-lg font-black md:text-base">
-                      {request.sellerName}
-                    </p>
+                        <div className="flex items-center gap-2">
+                          <p className="text-lg font-black md:text-base">{request.sellerName}</p>
+                          <button
+                            onClick={() => openSellerInfo(request)}
+                            className="rounded-md border border-market-ink/20 px-2 py-1 text-xs font-semibold text-market-ink/60 transition hover:border-market-ink/40 hover:bg-market-ink/5"
+                          >
+                            Info
+                          </button>
+                        </div>
 
                     <div className="grid grid-cols-2 gap-3 md:contents">
                       <div>
@@ -391,9 +630,18 @@ export default function Home() {
                     <p className="text-sm leading-6 text-market-ink/65">
                       {request.locationNote}
                     </p>
-                    <span className="w-fit rounded-md bg-market-mint px-3 py-2 text-sm font-bold text-market-leaf">
-                      Pending meetup
-                    </span>
+                    {request.status === "pending" ? (
+                      <button
+                        onClick={() => openDeliveryModal(request.id)}
+                        className="w-fit rounded-md bg-market-mint px-3 py-2 text-sm font-bold text-market-leaf"
+                      >
+                        Pending meetup
+                      </button>
+                    ) : request.status === "completed" ? (
+                      <span className="w-fit rounded-md bg-market-ink/10 px-3 py-2 text-sm font-bold text-market-ink/60">
+                        Completed
+                      </span>
+                    ) : null}
                   </div>
                 ))}
               </div>
@@ -463,7 +711,195 @@ export default function Home() {
           </section>
         ) : null}
 
-        {view === "create" ? (
+        {view === "seller-info" && selectedSeller ? (
+          <section className="mx-auto w-full max-w-2xl rounded-lg border border-market-ink/10 bg-white p-6 shadow-[0_10px_35px_rgba(23,32,27,0.08)]">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-sm font-bold uppercase tracking-wide text-market-leaf">
+                  Seller information
+                </p>
+                <h2 className="mt-3 text-2xl font-black">
+                  {selectedSeller.sellerName}
+                </h2>
+              </div>
+              <button
+                onClick={() => setShowContactInfo(!showContactInfo)}
+                className="rounded-md bg-market-ink px-4 py-2 text-sm font-bold text-white transition hover:bg-market-leaf"
+              >
+                Contact Info
+              </button>
+            </div>
+
+            <div className="mt-6 space-y-4">
+              {showContactInfo ? (
+                <div className="rounded-md bg-market-mint p-4 border border-market-leaf/30">
+                  <p className="text-sm text-market-ink/60">Email</p>
+                  <p className="mt-1 font-bold text-market-leaf">{selectedSeller.email}</p>
+                  <p className="mt-3 text-sm text-market-ink/60">Phone</p>
+                  <p className="mt-1 font-bold text-market-leaf">{selectedSeller.phone}</p>
+                </div>
+              ) : null}
+
+              <div className="rounded-md bg-[#f7faf5] p-4">
+                <p className="text-sm text-market-ink/60">Seller credibility rating</p>
+                <p className="mt-2 text-2xl font-black">
+                  {selectedSellerInfo?.reviewCount
+                    ? (selectedSellerInfo.ratingSum / selectedSellerInfo.reviewCount).toFixed(1)
+                    : "N/A"} stars
+                </p>
+              </div>
+              <div className="rounded-md bg-[#f7faf5] p-4">
+                <p className="text-sm text-market-ink/60">Total transactions made</p>
+                <p className="mt-2 text-2xl font-black">
+                  {selectedSellerInfo?.totalTransactions ?? 0}
+                </p>
+              </div>
+
+              {hasUnreviewedTransaction ? (
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    leaveReview(reviewScore);
+                  }}
+                  className="mt-2"
+                >
+                  <label className="block">
+                    <span className="text-sm font-bold text-market-ink/70">
+                      Leave a review (1-5)
+                    </span>
+                    <div className="mt-2 flex items-center gap-3">
+                      <select
+                        value={reviewScore}
+                        onChange={(e) => setReviewScore(Number(e.target.value))}
+                        className="rounded-md border border-market-ink/15 bg-white px-3 py-2 outline-none transition focus:border-market-leaf"
+                      >
+                        <option value={5}>5 - Excellent</option>
+                        <option value={4}>4 - Good</option>
+                        <option value={3}>3 - Okay</option>
+                        <option value={2}>2 - Poor</option>
+                        <option value={1}>1 - Bad</option>
+                      </select>
+
+                      <button
+                        type="submit"
+                        className="inline-flex items-center justify-center rounded-md bg-market-leaf px-4 py-2 font-bold text-white transition hover:bg-[#286b47]"
+                      >
+                        Submit Review
+                      </button>
+                    </div>
+                  </label>
+                </form>
+              ) : (
+                <div className="rounded-md border border-market-ink/10 bg-[#fff8f5] p-4 text-market-ink/75">
+                  <p className="font-semibold">
+                    You can only leave a review after completing a transaction with this seller, and only once per request. Leave another review after making a new request.
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+              <button
+                onClick={() => {
+                  setSelectedSeller(null);
+                  setShowContactInfo(false);
+                  setView("listings");
+                }}
+                className="inline-flex flex-1 items-center justify-center rounded-md border border-market-ink/15 bg-white px-5 py-3 font-bold text-market-ink transition hover:border-market-leaf/50 hover:text-market-leaf"
+              >
+                Back to Listings
+              </button>
+            </div>
+          </section>
+        ) : null}
+
+        {showConfirmation && pendingListing ? (
+          <section className="mx-auto w-full max-w-2xl rounded-lg border border-market-amber/40 bg-[#fff8e7] p-6 shadow-[0_10px_35px_rgba(23,32,27,0.08)]">
+            <p className="text-sm font-bold uppercase tracking-wide text-market-amber">
+              Confirm replacement
+            </p>
+            <h2 className="mt-3 text-2xl font-black">Replace Existing Listing?</h2>
+
+            <div className="mt-4 space-y-3 text-market-ink/80">
+              <p>
+                You already have a listing under the name <span className="font-bold">&quot;{pendingListing.sellerName}&quot;</span>.
+              </p>
+              <p>
+                Submitting this new listing will replace your previous one with:
+              </p>
+              <div className="rounded-md bg-white p-3 space-y-2 text-sm">
+                <p><span className="font-semibold">Meal card balance:</span> {money.format(pendingListing.balanceAmount)}</p>
+                <p><span className="font-semibold">Asking price:</span> {money.format(pendingListing.askingPrice)}</p>
+                <p><span className="font-semibold">Meetup note:</span> {pendingListing.locationNote}</p>
+              </div>
+            </div>
+
+            <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+              <button
+                onClick={confirmReplacement}
+                className="inline-flex flex-1 items-center justify-center rounded-md bg-market-amber px-5 py-3 font-bold text-white transition hover:bg-[#c99a00]"
+              >
+                Replace Listing
+              </button>
+              <button
+                onClick={() => {
+                  setShowConfirmation(false);
+                  setPendingListing(null);
+                }}
+                className="inline-flex flex-1 items-center justify-center rounded-md border border-market-ink/15 bg-white px-5 py-3 font-bold text-market-ink transition hover:border-market-leaf/50 hover:text-market-leaf"
+              >
+                Cancel
+              </button>
+            </div>
+          </section>
+        ) : null}
+
+        {showDeliveryModal && deliveryRequest ? (
+          <>
+            <div className="fixed inset-0 z-40 bg-black/40" onClick={closeDeliveryModal} />
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+              <section className="w-full max-w-md rounded-lg border border-market-amber/40 bg-[#fff8e7] p-6 shadow-[0_10px_35px_rgba(23,32,27,0.08)]">
+                <p className="text-sm font-bold uppercase tracking-wide text-market-amber">
+                  Confirm delivery
+                </p>
+                <h2 className="mt-3 text-2xl font-black">Did you receive the meal pass?</h2>
+
+                <div className="mt-4 space-y-3 text-market-ink/80">
+                  <p>
+                    If you received the meal pass from {deliveryRequest.sellerName}, click the confirmation button below.
+                  </p>
+                  <div className="rounded-md bg-white p-3 space-y-2 text-sm">
+                    <p><span className="font-semibold">Asking price:</span> {money.format(deliveryRequest.askingPrice)}</p>
+                    <p><span className="font-semibold">Meetup note:</span> {deliveryRequest.locationNote}</p>
+                  </div>
+                </div>
+
+                <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+                  <button
+                    onClick={() => confirmReceived(deliveryRequest.id)}
+                    className="inline-flex flex-1 items-center justify-center rounded-md bg-market-leaf px-5 py-3 font-bold text-white transition hover:bg-[#286b47]"
+                  >
+                    I received the meal pass
+                  </button>
+                  <button
+                    onClick={() => reportNotReceived(deliveryRequest.id)}
+                    className="inline-flex flex-1 items-center justify-center rounded-md border border-market-ink/15 bg-white px-5 py-3 font-bold text-market-ink transition hover:border-market-amber/40 hover:text-market-amber"
+                  >
+                    I haven&apos;t received - Refund
+                  </button>
+                  <button
+                    onClick={closeDeliveryModal}
+                    className="inline-flex flex-1 items-center justify-center rounded-md border border-market-ink/15 bg-white px-5 py-3 font-bold text-market-ink transition hover:border-market-leaf/50 hover:text-market-leaf"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </section>
+            </div>
+          </>
+        ) : null}
+
+        {view === "create" && !showConfirmation ? (
           <section className="mx-auto w-full max-w-2xl rounded-lg border border-market-ink/10 bg-white p-6 shadow-[0_10px_35px_rgba(23,32,27,0.08)]">
             <p className="text-sm font-bold uppercase tracking-wide text-market-leaf">
               New listing
@@ -537,6 +973,40 @@ export default function Home() {
                 />
               </label>
 
+              <div className="grid gap-4 sm:grid-cols-2">
+                <label className="block">
+                  <span className="text-sm font-bold text-market-ink/70">
+                    Email
+                  </span>
+                  <input
+                    required
+                    type="email"
+                    value={form.email}
+                    onChange={(event) =>
+                      setForm({ ...form, email: event.target.value })
+                    }
+                    className="mt-2 w-full rounded-md border border-market-ink/15 bg-white px-4 py-3 outline-none transition focus:border-market-leaf"
+                    placeholder="e.g. taylor.m@school.edu"
+                  />
+                </label>
+
+                <label className="block">
+                  <span className="text-sm font-bold text-market-ink/70">
+                    Phone
+                  </span>
+                  <input
+                    required
+                    type="tel"
+                    value={form.phone}
+                    onChange={(event) =>
+                      setForm({ ...form, phone: event.target.value })
+                    }
+                    className="mt-2 w-full rounded-md border border-market-ink/15 bg-white px-4 py-3 outline-none transition focus:border-market-leaf"
+                    placeholder="e.g. (555) 123-4567"
+                  />
+                </label>
+              </div>
+
               <div className="flex flex-col gap-3 pt-2 sm:flex-row">
                 <button
                   type="submit"
@@ -551,7 +1021,9 @@ export default function Home() {
                       sellerName: "",
                       balanceAmount: "",
                       askingPrice: "",
-                      locationNote: ""
+                      locationNote: "",
+                      email: "",
+                      phone: ""
                     });
                     setView("listings");
                   }}
@@ -567,3 +1039,4 @@ export default function Home() {
     </main>
   );
 }
+
