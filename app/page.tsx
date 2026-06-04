@@ -115,7 +115,8 @@ function getDiscount(balanceAmount: number, askingPrice: number) {
 export default function Home() {
   const [listings, setListings] = useState<Listing[]>(initialListings);
   const [recentRequests, setRecentRequests] = useState<Listing[]>([]);
-  const [walletBalance, setWalletBalance] = useState(100);
+  const [flexFunds, setFlexFunds] = useState(100);
+  const [mealPlanBalance, setMealPlanBalance] = useState(200);
   const [view, setView] = useState<View>("listings");
   const [selectedListing, setSelectedListing] = useState<Listing | null>(null);
   const [selectedSeller, setSelectedSeller] = useState<Listing | null>(null);
@@ -196,8 +197,9 @@ export default function Home() {
       selectedListing,
       ...currentRequests
     ]);
-    setWalletBalance((currentBalance) =>
-      currentBalance - selectedListing.askingPrice
+    setFlexFunds((currentBalance) =>
+  currentBalance - selectedListing.askingPrice
+  );
     );
     setSellerInformation((currentInfo) => {
       const prevInfo = currentInfo[selectedListing.sellerName] ?? {
@@ -295,11 +297,20 @@ export default function Home() {
 
         {view === "listings" ? (
           <section className="space-y-5">
-            <div className="grid gap-4 sm:grid-cols-3">
-              <div className="rounded-lg border border-market-ink/10 bg-white p-4">
-                <p className="text-sm text-market-ink/60">Active listings</p>
-                <p className="mt-1 text-2xl font-black">{listings.length}</p>
-              </div>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4"> 
+          <div className="rounded-lg border border-market-ink/10 bg-white p-4">
+            <p className="text-sm text-market-ink/60">Flex Funds</p>
+            <p className="mt-1 text-2xl font-black">
+              {money.format(flexFunds)}
+            </p>
+          </div>
+
+<div className="rounded-lg border border-market-ink/10 bg-white p-4">
+  <p className="text-sm text-market-ink/60">Meal Plan Balance</p>
+  <p className="mt-1 text-2xl font-black">
+    {money.format(mealPlanBalance)}
+  </p>
+</div>
               <div className="rounded-lg border border-market-ink/10 bg-white p-4">
                 <p className="text-sm text-market-ink/60">My wallet balance</p>
                 <p className="mt-1 text-2xl font-black">
