@@ -116,7 +116,8 @@ function getDiscount(balanceAmount: number, askingPrice: number) {
 export default function Home() {
   const [listings, setListings] = useState<Listing[]>(initialListings);
   const [recentRequests, setRecentRequests] = useState<Listing[]>([]);
-  const [walletBalance, setWalletBalance] = useState(100);
+  const [flexFunds, setFlexFunds] = useState(100);
+  const [mealPlanBalance, setMealPlanBalance] = useState(200);
   const [view, setView] = useState<View>("listings");
   const [selectedListing, setSelectedListing] = useState<Listing | null>(null);
   const [selectedSeller, setSelectedSeller] = useState<Listing | null>(null);
@@ -204,9 +205,9 @@ export default function Home() {
       { ...selectedListing, status: "pending" },
       ...currentRequests
     ]);
-    setWalletBalance((currentBalance) =>
+    setFlexFunds((currentBalance) =>
       currentBalance - selectedListing.askingPrice
-    );
+  );
     setSellerInformation((currentInfo) => {
       const prevInfo = currentInfo[selectedListing.sellerName] ?? {
         totalTransactions: 0,
