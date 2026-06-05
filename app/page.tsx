@@ -126,6 +126,7 @@ export default function Home() {
   const [reviewedRequestIds, setReviewedRequestIds] = useState<number[]>([]);
   const [reviewedScores, setReviewedScores] = useState<{ [key: number]: number }>({});
   const [successMessage, setSuccessMessage] = useState("");
+  const [showFeedbackModal, setShowFeedbackModal] = useState(false);
   const [showContactInfo, setShowContactInfo] = useState(false);
 
   const selectedSellerInfo = selectedSeller ? sellerInformation[selectedSeller.sellerName] : undefined;
@@ -229,6 +230,7 @@ export default function Home() {
     setSuccessMessage(
       `Request confirmed for ${selectedListing.sellerName}'s listing.`
     );
+    setShowFeedbackModal(true);
     setSelectedListing(null);
     setView("listings");
   }
@@ -1107,6 +1109,41 @@ export default function Home() {
             </form>
           </section>
         ) : null}
+        {showFeedbackModal && (
+  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+    <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-lg">
+      <h2 className="text-xl font-black">
+        Quick Feedback
+      </h2>
+
+      <p className="mt-2 text-market-ink/70">
+        How was your experience?
+      </p>
+
+      <textarea
+        className="mt-4 w-full rounded-md border border-market-ink/15 p-3"
+        rows={4}
+        placeholder="Share your thoughts..."
+      />
+
+      <div className="mt-4 flex gap-3">
+        <button
+          onClick={() => setShowFeedbackModal(false)}
+          className="rounded-md bg-market-leaf px-4 py-2 font-bold text-white"
+        >
+          Submit
+        </button>
+
+        <button
+          onClick={() => setShowFeedbackModal(false)}
+          className="rounded-md border border-market-ink/15 px-4 py-2"
+        >
+          Skip
+        </button>
+      </div>
+    </div>
+  </div>
+)}
       </div>
     </main>
   );
