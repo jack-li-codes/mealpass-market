@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { FormEvent, useState } from "react";
 
@@ -10,6 +10,7 @@ type Listing = {
   locationNote: string;
   email: string;
   phone: string;
+  status?: "pending" | "completed" | "refunded";
 };
 
 type SellerInfo = {
@@ -115,14 +116,17 @@ function getDiscount(balanceAmount: number, askingPrice: number) {
 export default function Home() {
   const [listings, setListings] = useState<Listing[]>(initialListings);
   const [recentRequests, setRecentRequests] = useState<Listing[]>([]);
-  const [walletBalance, setWalletBalance] = useState(100);
+  const [flexFunds, setFlexFunds] = useState(100);
+  const [mealPlanBalance, setMealPlanBalance] = useState(200);
   const [view, setView] = useState<View>("listings");
   const [selectedListing, setSelectedListing] = useState<Listing | null>(null);
   const [selectedSeller, setSelectedSeller] = useState<Listing | null>(null);
   const [sellerInformation, setSellerInformation] = useState<{ [key: string]: SellerInfo }>(initialSellerInformation);
   const [reviewScore, setReviewScore] = useState<number>(5);
   const [reviewedRequestIds, setReviewedRequestIds] = useState<number[]>([]);
+  const [reviewedScores, setReviewedScores] = useState<{ [key: number]: number }>({});
   const [successMessage, setSuccessMessage] = useState("");
+  const [showFeedbackModal, setShowFeedbackModal] = useState(false);
   const [showContactInfo, setShowContactInfo] = useState(false);
 
   const selectedSellerInfo = selectedSeller ? sellerInformation[selectedSeller.sellerName] : undefined;
@@ -135,6 +139,14 @@ export default function Home() {
     email: "",
     phone: ""
   });
+  const [showConfirmation, setShowConfirmation] = useState(false);
+  const [pendingListing, setPendingListing] = useState<Listing | null>(null);
+  const [currentUserSellerName, setCurrentUserSellerName] = useState<string | null>(null);
+  const [showDeliveryModal, setShowDeliveryModal] = useState(false);
+  const [deliveryRequestId, setDeliveryRequestId] = useState<number | null>(null);
+  const [showWalletPanel, setShowWalletPanel] = useState(false);
+  const [showAllListings, setShowAllListings] = useState(false);
+  const [hasEnteredMarketplace, setHasEnteredMarketplace] = useState(false);
 
   function openListing(listing: Listing) {
     setSuccessMessage("");
@@ -169,6 +181,7 @@ export default function Home() {
     const unreviewedId = getUnreviewedRequestIdForSeller(name);
     if (unreviewedId) {
       setReviewedRequestIds((prev) => [unreviewedId, ...prev]);
+      setReviewedScores((prev) => ({ ...prev, [unreviewedId]: score }));
     }
 
     setSuccessMessage(`Submitted ${score}-star review for ${name}.`);
@@ -193,12 +206,12 @@ export default function Home() {
       currentListings.filter((listing) => listing.id !== selectedListing.id)
     );
     setRecentRequests((currentRequests) => [
-      selectedListing,
+      { ...selectedListing, status: "pending" },
       ...currentRequests
     ]);
-    setWalletBalance((currentBalance) =>
+    setFlexFunds((currentBalance) =>
       currentBalance - selectedListing.askingPrice
-    );
+  );
     setSellerInformation((currentInfo) => {
       const prevInfo = currentInfo[selectedListing.sellerName] ?? {
         totalTransactions: 0,
@@ -217,8 +230,70 @@ export default function Home() {
     setSuccessMessage(
       `Request confirmed for ${selectedListing.sellerName}'s listing.`
     );
+    setShowFeedbackModal(true);
     setSelectedListing(null);
     setView("listings");
+  }
+
+  function openDeliveryModal(requestId: number) {
+    setDeliveryRequestId(requestId);
+    setShowDeliveryModal(true);
+  }
+
+  function closeDeliveryModal() {
+    setDeliveryRequestId(null);
+    setShowDeliveryModal(false);
+  }
+
+  function confirmReceived(requestId: number) {
+    setRecentRequests((current) =>
+      current.map((r) => (r.id === requestId ? { ...r, status: "completed" } : r))
+    );
+    closeDeliveryModal();
+  }
+
+  function reportNotReceived(requestId: number) {
+    const req = recentRequests.find((r) => r.id === requestId);
+    if (!req) return;
+
+    // Refund buyer
+    setFlexFunds((bal) => bal + req.askingPrice);
+
+    // Remove the request from recentRequests
+    setRecentRequests((current) => current.filter((r) => r.id !== requestId));
+
+    // Re-add seller's listing back to active listings (remove any status)
+    setListings((current) => [{ ...req, status: undefined }, ...current]);
+
+    // Revert seller stats: decrement totalTransactions and any review added for this request
+    setSellerInformation((prev) => {
+      const prevInfo = prev[req.sellerName];
+      if (!prevInfo) return prev;
+
+      const updated: SellerInfo = { ...prevInfo };
+      if (updated.totalTransactions && updated.totalTransactions > 0) {
+        updated.totalTransactions = updated.totalTransactions - 1;
+      }
+
+      const reviewedScore = reviewedScores[requestId];
+      if (reviewedScore != null && updated.reviewCount && updated.reviewCount > 0) {
+        updated.reviewCount = Math.max(0, updated.reviewCount - 1);
+        updated.ratingSum = Math.max(0, updated.ratingSum - reviewedScore);
+      }
+
+      return { ...prev, [req.sellerName]: updated };
+    });
+
+    // Clean up reviewed ids and scores for this request
+    setReviewedRequestIds((prev) => prev.filter((id) => id !== requestId));
+    setReviewedScores((prev) => {
+      const copy = { ...prev };
+      delete copy[requestId];
+      return copy;
+    });
+
+    setSuccessMessage("Money refunded to your wallet.");
+    closeDeliveryModal();
   }
 
   function submitListing(event: FormEvent<HTMLFormElement>) {
@@ -238,18 +313,44 @@ export default function Home() {
       return;
     }
 
-    setListings((currentListings) => [
-      {
-        id: Date.now(),
-        sellerName: form.sellerName.trim(),
-        balanceAmount,
-        askingPrice,
-        locationNote: form.locationNote.trim(),
-        email: form.email.trim(),
-        phone: form.phone.trim()
-      },
-      ...currentListings
-    ]);
+    const newListing: Listing = {
+      id: Date.now(),
+      sellerName: form.sellerName.trim(),
+      balanceAmount,
+      askingPrice,
+      locationNote: form.locationNote.trim(),
+      email: form.email.trim(),
+      phone: form.phone.trim()
+    };
+
+    const existingListing = listings.find(
+      (listing) => listing.sellerName === newListing.sellerName
+    );
+    const availableMealPlanBalance =
+      mealPlanBalance + (existingListing?.balanceAmount ?? 0);
+
+    if (balanceAmount > availableMealPlanBalance) {
+      setSuccessMessage("Not enough Meal Plan Balance to create this listing.");
+      return;
+    }
+
+    if (existingListing) {
+      setPendingListing(newListing);
+      setShowConfirmation(true);
+    } else {
+      createListing(newListing);
+    }
+  }
+
+  function createListing(listing: Listing) {
+    if (listing.balanceAmount > mealPlanBalance) {
+      setSuccessMessage("Not enough Meal Plan Balance to create this listing.");
+      return;
+    }
+
+    setListings((currentListings) => [listing, ...currentListings]);
+    setMealPlanBalance((currentBalance) => currentBalance - listing.balanceAmount);
+    setCurrentUserSellerName(listing.sellerName);
     setForm({
       sellerName: "",
       balanceAmount: "",
@@ -260,6 +361,125 @@ export default function Home() {
     });
     setSuccessMessage("Listing created and added to active listings.");
     setView("listings");
+  }
+
+  function confirmReplacement() {
+    if (pendingListing) {
+      const existingListing = listings.find(
+        (listing) => listing.sellerName === pendingListing.sellerName
+      );
+      const restoredBalance = existingListing?.balanceAmount ?? 0;
+
+      if (pendingListing.balanceAmount > mealPlanBalance + restoredBalance) {
+        setSuccessMessage("Not enough Meal Plan Balance to update this listing.");
+        setShowConfirmation(false);
+        setPendingListing(null);
+        return;
+      }
+
+      setListings((currentListings) =>
+        currentListings.map((listing) =>
+          listing.sellerName === pendingListing.sellerName
+            ? pendingListing
+            : listing
+        )
+      );
+      setMealPlanBalance(
+        (currentBalance) =>
+          currentBalance + restoredBalance - pendingListing.balanceAmount
+      );
+      setCurrentUserSellerName(pendingListing.sellerName);
+      setForm({
+        sellerName: "",
+        balanceAmount: "",
+        askingPrice: "",
+        locationNote: "",
+        email: "",
+        phone: ""
+      });
+      setSuccessMessage(
+        `Listing for ${pendingListing.sellerName} has been updated.`
+      );
+      setShowConfirmation(false);
+      setPendingListing(null);
+      setView("listings");
+    }
+  }
+
+  const deliveryRequest = deliveryRequestId ? recentRequests.find((r) => r.id === deliveryRequestId) ?? null : null;
+  const visibleListings = showAllListings ? listings : listings.slice(0, 5);
+
+  if (!hasEnteredMarketplace) {
+    return (
+      <main className="min-h-screen bg-[#f7faf5] text-market-ink">
+        <section className="mx-auto flex min-h-screen w-full max-w-6xl flex-col justify-center gap-8 px-5 py-10 sm:px-8 lg:px-10">
+          <div className="max-w-3xl">
+            <p className="text-sm font-bold uppercase tracking-wide text-market-leaf">
+              Classroom MVP
+            </p>
+            <h1 className="mt-3 text-4xl font-black tracking-normal sm:text-6xl">
+              MealPass Market
+            </h1>
+            <p className="mt-5 max-w-2xl text-lg leading-8 text-market-ink/70">
+              A student marketplace concept for turning unused meal card balance
+              into discounted campus food deals.
+            </p>
+            <p className="mt-3 max-w-2xl text-sm leading-6 text-market-ink/60">
+              Mock data only. No real money, accounts, or school system integration.
+            </p>
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+              <button
+                onClick={() => setHasEnteredMarketplace(true)}
+                className="inline-flex items-center justify-center rounded-md bg-market-leaf px-6 py-3 font-bold text-white transition hover:bg-[#286b47]"
+              >
+                Enter Marketplace
+              </button>
+              <button
+                onClick={() => {
+                  setHasEnteredMarketplace(true);
+                  setSuccessMessage("");
+                  setSelectedListing(null);
+                  setView("create");
+                }}
+                className="inline-flex items-center justify-center rounded-md border border-market-ink/15 bg-white px-6 py-3 font-bold text-market-ink transition hover:border-market-leaf/40 hover:text-market-leaf"
+              >
+                Create a Listing
+              </button>
+            </div>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-3">
+            {[
+              {
+                title: "Browse discounted balances",
+                description:
+                  "Find mock listings from students with unused meal card balance."
+              },
+              {
+                title: "Create your own listing",
+                description:
+                  "Post a mock meal card balance with an asking price and meetup note."
+              },
+              {
+                title: "Request and track",
+                description:
+                  "Request a listing, view recent requests, and see mock balance changes."
+              }
+            ].map((item) => (
+              <div
+                key={item.title}
+                className="rounded-lg border border-market-ink/10 bg-white p-5 shadow-[0_10px_35px_rgba(23,32,27,0.06)]"
+              >
+                <p className="font-black">{item.title}</p>
+                <p className="mt-2 text-sm leading-6 text-market-ink/60">
+                  {item.description}
+                </p>
+              </div>
+            ))}
+          </div>
+        </section>
+      </main>
+    );
   }
 
   return (
@@ -275,16 +495,46 @@ export default function Home() {
               integration.
             </p>
           </div>
-          <button
-            onClick={() => {
-              setSuccessMessage("");
-              setSelectedListing(null);
-              setView("create");
-            }}
-            className="inline-flex items-center justify-center rounded-md bg-market-leaf px-5 py-3 font-bold text-white transition hover:bg-[#286b47]"
-          >
-            Create Listing
-          </button>
+          <div className="relative flex flex-col gap-3 sm:flex-row sm:items-center">
+            <button
+              onClick={() => setShowWalletPanel((current) => !current)}
+              className="inline-flex items-center justify-center rounded-md border border-market-ink/15 bg-white px-5 py-3 font-bold text-market-ink transition hover:border-market-leaf/40 hover:text-market-leaf"
+            >
+              Wallet
+            </button>
+            <button
+              onClick={() => {
+                setSuccessMessage("");
+                setSelectedListing(null);
+                setView("create");
+              }}
+              className="inline-flex items-center justify-center rounded-md bg-market-leaf px-5 py-3 font-bold text-white transition hover:bg-[#286b47]"
+            >
+              Create Listing
+            </button>
+
+            {showWalletPanel ? (
+              <div className="absolute right-0 top-full z-10 mt-3 w-72 rounded-lg border border-market-ink/10 bg-white p-4 shadow-[0_18px_45px_rgba(23,32,27,0.12)]">
+                <div className="grid gap-3">
+                  <div>
+                    <p className="text-sm text-market-ink/60">Flex Funds</p>
+                    <p className="mt-1 text-2xl font-black">
+                      {money.format(flexFunds)}
+                    </p>
+                  </div>
+                  <div className="border-t border-market-ink/10 pt-3">
+                    <p className="text-sm text-market-ink/60">Meal Plan Balance</p>
+                    <p className="mt-1 text-xl font-black">
+                      {money.format(mealPlanBalance)}
+                    </p>
+                  </div>
+                  <p className="text-xs leading-5 text-market-ink/55">
+                    Mock balances only. No real money is used.
+                  </p>
+                </div>
+              </div>
+            ) : null}
+          </div>
         </header>
 
         {successMessage ? (
@@ -295,25 +545,8 @@ export default function Home() {
 
         {view === "listings" ? (
           <section className="space-y-5">
-            <div className="grid gap-4 sm:grid-cols-3">
-              <div className="rounded-lg border border-market-ink/10 bg-white p-4">
-                <p className="text-sm text-market-ink/60">Active listings</p>
-                <p className="mt-1 text-2xl font-black">{listings.length}</p>
-              </div>
-              <div className="rounded-lg border border-market-ink/10 bg-white p-4">
-                <p className="text-sm text-market-ink/60">My wallet balance</p>
-                <p className="mt-1 text-2xl font-black">
-                  {money.format(walletBalance)}
-                </p>
-              </div>
-              <div className="rounded-lg border border-market-ink/10 bg-white p-4">
-                <p className="text-sm text-market-ink/60">Request method</p>
-                <p className="mt-1 text-2xl font-black">Manual</p>
-              </div>
-            </div>
-
             <div className="flex items-center justify-between gap-4">
-              <h2 className="text-2xl font-black">Active Listings</h2>
+              <h2 className="text-2xl font-black">Active Listings <span className="text-market-ink/60">({listings.length})</span></h2>
               <p className="text-sm text-market-ink/60">Mock data only</p>
             </div>
 
@@ -328,7 +561,7 @@ export default function Home() {
                   <span className="text-right">Action</span>
                 </div>
 
-                {listings.map((listing) => {
+                {visibleListings.map((listing) => {
                   const discount = getDiscount(
                     listing.balanceAmount,
                     listing.askingPrice
@@ -383,12 +616,18 @@ export default function Home() {
                         {listing.locationNote}
                       </p>
 
-                      <button
-                        onClick={() => openListing(listing)}
-                        className="rounded-md bg-market-ink px-4 py-2.5 text-sm font-bold text-white transition hover:bg-market-leaf md:justify-self-end"
-                      >
-                        Buy / Request
-                      </button>
+                      {currentUserSellerName === listing.sellerName ? (
+                        <div className="rounded-md bg-market-ink/10 px-4 py-2.5 text-sm font-bold text-market-ink/60 md:justify-self-end">
+                          My Listing
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => openListing(listing)}
+                          className="rounded-md bg-market-ink px-4 py-2.5 text-sm font-bold text-white transition hover:bg-market-leaf md:justify-self-end"
+                        >
+                          Buy / Request
+                        </button>
+                      )}
                     </div>
                   );
                 })}
@@ -402,8 +641,19 @@ export default function Home() {
               </div>
             )}
 
+            {listings.length > 5 ? (
+              <div className="flex justify-center">
+                <button
+                  onClick={() => setShowAllListings((current) => !current)}
+                  className="rounded-md border border-market-ink/15 bg-white px-4 py-2.5 text-sm font-bold text-market-ink transition hover:border-market-leaf/40 hover:text-market-leaf"
+                >
+                  {showAllListings ? "Show fewer listings" : "Show more listings"}
+                </button>
+              </div>
+            ) : null}
+
             <div className="flex items-center justify-between gap-4 pt-2">
-              <h2 className="text-2xl font-black">Recent Requests</h2>
+              <h2 className="text-2xl font-black">Recent Requests <span className="text-market-ink/60">({recentRequests.length})</span></h2>
               <p className="text-sm text-market-ink/60">Pending manual meetup</p>
             </div>
 
@@ -454,9 +704,18 @@ export default function Home() {
                     <p className="text-sm leading-6 text-market-ink/65">
                       {request.locationNote}
                     </p>
-                    <span className="w-fit rounded-md bg-market-mint px-3 py-2 text-sm font-bold text-market-leaf">
-                      Pending meetup
-                    </span>
+                    {request.status === "pending" ? (
+                      <button
+                        onClick={() => openDeliveryModal(request.id)}
+                        className="w-fit rounded-md bg-market-mint px-3 py-2 text-sm font-bold text-market-leaf"
+                      >
+                        Pending meetup
+                      </button>
+                    ) : request.status === "completed" ? (
+                      <span className="w-fit rounded-md bg-market-ink/10 px-3 py-2 text-sm font-bold text-market-ink/60">
+                        Completed
+                      </span>
+                    ) : null}
                   </div>
                 ))}
               </div>
@@ -560,7 +819,7 @@ export default function Home() {
                 <p className="mt-2 text-2xl font-black">
                   {selectedSellerInfo?.reviewCount
                     ? (selectedSellerInfo.ratingSum / selectedSellerInfo.reviewCount).toFixed(1)
-                    : "—"} ⭐
+                    : "N/A"} stars
                 </p>
               </div>
               <div className="rounded-md bg-[#f7faf5] p-4">
@@ -628,7 +887,93 @@ export default function Home() {
           </section>
         ) : null}
 
-        {view === "create" ? (
+        {showConfirmation && pendingListing ? (
+          <section className="mx-auto w-full max-w-2xl rounded-lg border border-market-amber/40 bg-[#fff8e7] p-6 shadow-[0_10px_35px_rgba(23,32,27,0.08)]">
+            <p className="text-sm font-bold uppercase tracking-wide text-market-amber">
+              Confirm replacement
+            </p>
+            <h2 className="mt-3 text-2xl font-black">Replace Existing Listing?</h2>
+
+            <div className="mt-4 space-y-3 text-market-ink/80">
+              <p>
+                You already have a listing under the name <span className="font-bold">&quot;{pendingListing.sellerName}&quot;</span>.
+              </p>
+              <p>
+                Submitting this new listing will replace your previous one with:
+              </p>
+              <div className="rounded-md bg-white p-3 space-y-2 text-sm">
+                <p><span className="font-semibold">Meal card balance:</span> {money.format(pendingListing.balanceAmount)}</p>
+                <p><span className="font-semibold">Asking price:</span> {money.format(pendingListing.askingPrice)}</p>
+                <p><span className="font-semibold">Meetup note:</span> {pendingListing.locationNote}</p>
+              </div>
+            </div>
+
+            <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+              <button
+                onClick={confirmReplacement}
+                className="inline-flex flex-1 items-center justify-center rounded-md bg-market-amber px-5 py-3 font-bold text-white transition hover:bg-[#c99a00]"
+              >
+                Replace Listing
+              </button>
+              <button
+                onClick={() => {
+                  setShowConfirmation(false);
+                  setPendingListing(null);
+                }}
+                className="inline-flex flex-1 items-center justify-center rounded-md border border-market-ink/15 bg-white px-5 py-3 font-bold text-market-ink transition hover:border-market-leaf/50 hover:text-market-leaf"
+              >
+                Cancel
+              </button>
+            </div>
+          </section>
+        ) : null}
+
+        {showDeliveryModal && deliveryRequest ? (
+          <>
+            <div className="fixed inset-0 z-40 bg-black/40" onClick={closeDeliveryModal} />
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+              <section className="w-full max-w-md rounded-lg border border-market-amber/40 bg-[#fff8e7] p-6 shadow-[0_10px_35px_rgba(23,32,27,0.08)]">
+                <p className="text-sm font-bold uppercase tracking-wide text-market-amber">
+                  Confirm delivery
+                </p>
+                <h2 className="mt-3 text-2xl font-black">Did you receive the meal pass?</h2>
+
+                <div className="mt-4 space-y-3 text-market-ink/80">
+                  <p>
+                    If you received the meal pass from {deliveryRequest.sellerName}, click the confirmation button below.
+                  </p>
+                  <div className="rounded-md bg-white p-3 space-y-2 text-sm">
+                    <p><span className="font-semibold">Asking price:</span> {money.format(deliveryRequest.askingPrice)}</p>
+                    <p><span className="font-semibold">Meetup note:</span> {deliveryRequest.locationNote}</p>
+                  </div>
+                </div>
+
+                <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+                  <button
+                    onClick={() => confirmReceived(deliveryRequest.id)}
+                    className="inline-flex flex-1 items-center justify-center rounded-md bg-market-leaf px-5 py-3 font-bold text-white transition hover:bg-[#286b47]"
+                  >
+                    I received the meal pass
+                  </button>
+                  <button
+                    onClick={() => reportNotReceived(deliveryRequest.id)}
+                    className="inline-flex flex-1 items-center justify-center rounded-md border border-market-ink/15 bg-white px-5 py-3 font-bold text-market-ink transition hover:border-market-amber/40 hover:text-market-amber"
+                  >
+                    I haven&apos;t received - Refund
+                  </button>
+                  <button
+                    onClick={closeDeliveryModal}
+                    className="inline-flex flex-1 items-center justify-center rounded-md border border-market-ink/15 bg-white px-5 py-3 font-bold text-market-ink transition hover:border-market-leaf/50 hover:text-market-leaf"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </section>
+            </div>
+          </>
+        ) : null}
+
+        {view === "create" && !showConfirmation ? (
           <section className="mx-auto w-full max-w-2xl rounded-lg border border-market-ink/10 bg-white p-6 shadow-[0_10px_35px_rgba(23,32,27,0.08)]">
             <p className="text-sm font-bold uppercase tracking-wide text-market-leaf">
               New listing
@@ -764,7 +1109,43 @@ export default function Home() {
             </form>
           </section>
         ) : null}
+        {showFeedbackModal && (
+  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+    <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-lg">
+      <h2 className="text-xl font-black">
+        Quick Feedback
+      </h2>
+
+      <p className="mt-2 text-market-ink/70">
+        How was your experience?
+      </p>
+
+      <textarea
+        className="mt-4 w-full rounded-md border border-market-ink/15 p-3"
+        rows={4}
+        placeholder="Share your thoughts..."
+      />
+
+      <div className="mt-4 flex gap-3">
+        <button
+          onClick={() => setShowFeedbackModal(false)}
+          className="rounded-md bg-market-leaf px-4 py-2 font-bold text-white"
+        >
+          Submit
+        </button>
+
+        <button
+          onClick={() => setShowFeedbackModal(false)}
+          className="rounded-md border border-market-ink/15 px-4 py-2"
+        >
+          Skip
+        </button>
+      </div>
+    </div>
+  </div>
+)}
       </div>
     </main>
   );
 }
+
