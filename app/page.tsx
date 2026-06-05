@@ -145,6 +145,7 @@ export default function Home() {
   const [deliveryRequestId, setDeliveryRequestId] = useState<number | null>(null);
   const [showWalletPanel, setShowWalletPanel] = useState(false);
   const [showAllListings, setShowAllListings] = useState(false);
+  const [hasEnteredMarketplace, setHasEnteredMarketplace] = useState(false);
 
   function openListing(listing: Listing) {
     setSuccessMessage("");
@@ -405,6 +406,79 @@ export default function Home() {
 
   const deliveryRequest = deliveryRequestId ? recentRequests.find((r) => r.id === deliveryRequestId) ?? null : null;
   const visibleListings = showAllListings ? listings : listings.slice(0, 5);
+
+  if (!hasEnteredMarketplace) {
+    return (
+      <main className="min-h-screen bg-[#f7faf5] text-market-ink">
+        <section className="mx-auto flex min-h-screen w-full max-w-6xl flex-col justify-center gap-8 px-5 py-10 sm:px-8 lg:px-10">
+          <div className="max-w-3xl">
+            <p className="text-sm font-bold uppercase tracking-wide text-market-leaf">
+              Classroom MVP
+            </p>
+            <h1 className="mt-3 text-4xl font-black tracking-normal sm:text-6xl">
+              MealPass Market
+            </h1>
+            <p className="mt-5 max-w-2xl text-lg leading-8 text-market-ink/70">
+              A student marketplace concept for turning unused meal card balance
+              into discounted campus food deals.
+            </p>
+            <p className="mt-3 max-w-2xl text-sm leading-6 text-market-ink/60">
+              Mock data only. No real money, accounts, or school system integration.
+            </p>
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+              <button
+                onClick={() => setHasEnteredMarketplace(true)}
+                className="inline-flex items-center justify-center rounded-md bg-market-leaf px-6 py-3 font-bold text-white transition hover:bg-[#286b47]"
+              >
+                Enter Marketplace
+              </button>
+              <button
+                onClick={() => {
+                  setHasEnteredMarketplace(true);
+                  setSuccessMessage("");
+                  setSelectedListing(null);
+                  setView("create");
+                }}
+                className="inline-flex items-center justify-center rounded-md border border-market-ink/15 bg-white px-6 py-3 font-bold text-market-ink transition hover:border-market-leaf/40 hover:text-market-leaf"
+              >
+                Create a Listing
+              </button>
+            </div>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-3">
+            {[
+              {
+                title: "Browse discounted balances",
+                description:
+                  "Find mock listings from students with unused meal card balance."
+              },
+              {
+                title: "Create your own listing",
+                description:
+                  "Post a mock meal card balance with an asking price and meetup note."
+              },
+              {
+                title: "Request and track",
+                description:
+                  "Request a listing, view recent requests, and see mock balance changes."
+              }
+            ].map((item) => (
+              <div
+                key={item.title}
+                className="rounded-lg border border-market-ink/10 bg-white p-5 shadow-[0_10px_35px_rgba(23,32,27,0.06)]"
+              >
+                <p className="font-black">{item.title}</p>
+                <p className="mt-2 text-sm leading-6 text-market-ink/60">
+                  {item.description}
+                </p>
+              </div>
+            ))}
+          </div>
+        </section>
+      </main>
+    );
+  }
 
   return (
     <main className="min-h-screen bg-[#f7faf5] text-market-ink">
