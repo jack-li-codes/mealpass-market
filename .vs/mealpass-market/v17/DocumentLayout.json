@@ -7,15 +7,6 @@
       "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:app\\page.tsx||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\Tyler Nabeta\\OneDrive\\Documents\\page.tsx||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\Tyler Nabeta\\OneDrive\\Pictures\\page.tsx||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\Tyler Nabeta\\Downloads\\page.tsx||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}"
-    },
-    {
       "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\Tyler Nabeta\\mealpass-market\\docs\\screenshots\\.gitkeep||{8B382828-6202-11D1-8870-0000F87579D2}",
       "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:docs\\screenshots\\.gitkeep||{8B382828-6202-11D1-8870-0000F87579D2}"
     },
@@ -71,47 +62,8 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": 3,
+          "SelectedChildIndex": 0,
           "Children": [
-            {
-              "$type": "Document",
-              "DocumentIndex": 2,
-              "Title": "page.tsx",
-              "DocumentMoniker": "C:\\Users\\Tyler Nabeta\\OneDrive\\Pictures\\page.tsx",
-              "RelativeDocumentMoniker": "..\\OneDrive\\Pictures\\page.tsx",
-              "ToolTip": "C:\\Users\\Tyler Nabeta\\OneDrive\\Pictures\\page.tsx",
-              "RelativeToolTip": "..\\OneDrive\\Pictures\\page.tsx",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAIAAAAcAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003213|",
-              "WhenOpened": "2026-06-05T01:52:11.564Z",
-              "IsPinned": true,
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 3,
-              "Title": "page.tsx",
-              "DocumentMoniker": "C:\\Users\\Tyler Nabeta\\Downloads\\page.tsx",
-              "RelativeDocumentMoniker": "..\\Downloads\\page.tsx",
-              "ToolTip": "C:\\Users\\Tyler Nabeta\\Downloads\\page.tsx",
-              "RelativeToolTip": "..\\Downloads\\page.tsx",
-              "ViewState": "AgIAADICAAAAAAAAAAAwwAAAAAAAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003213|",
-              "WhenOpened": "2026-06-05T01:33:45.101Z"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 1,
-              "Title": "page.tsx",
-              "DocumentMoniker": "C:\\Users\\Tyler Nabeta\\OneDrive\\Documents\\page.tsx",
-              "RelativeDocumentMoniker": "..\\OneDrive\\Documents\\page.tsx",
-              "ToolTip": "C:\\Users\\Tyler Nabeta\\OneDrive\\Documents\\page.tsx",
-              "RelativeToolTip": "..\\OneDrive\\Documents\\page.tsx",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAIAAAAWAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003213|",
-              "WhenOpened": "2026-06-05T01:32:52.853Z",
-              "EditorCaption": ""
-            },
             {
               "$type": "Document",
               "DocumentIndex": 0,
@@ -120,14 +72,14 @@
               "RelativeDocumentMoniker": "app\\page.tsx",
               "ToolTip": "C:\\Users\\Tyler Nabeta\\mealpass-market\\app\\page.tsx",
               "RelativeToolTip": "app\\page.tsx",
-              "ViewState": "AgIAAG4CAAAAAAAAAAAmwAAAAAAAAAAAAAAAAA==",
+              "ViewState": "AgIAALMBAAAAAAAAAAAgwPAAAAAcAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003213|",
               "WhenOpened": "2026-06-05T01:31:17.962Z",
               "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 4,
+              "DocumentIndex": 1,
               "Title": ".gitkeep",
               "DocumentMoniker": "C:\\Users\\Tyler Nabeta\\mealpass-market\\docs\\screenshots\\.gitkeep",
               "RelativeDocumentMoniker": "docs\\screenshots\\.gitkeep",
@@ -139,7 +91,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 8,
+              "DocumentIndex": 5,
               "Title": ".gitkeep",
               "DocumentMoniker": "C:\\Users\\Tyler Nabeta\\mealpass-market\\docs\\testing\\.gitkeep",
               "RelativeDocumentMoniker": "docs\\testing\\.gitkeep",
@@ -151,7 +103,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 9,
+              "DocumentIndex": 6,
               "Title": ".gitkeep",
               "DocumentMoniker": "C:\\Users\\Tyler Nabeta\\mealpass-market\\docs\\project-management\\.gitkeep",
               "RelativeDocumentMoniker": "docs\\project-management\\.gitkeep",
@@ -163,7 +115,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 10,
+              "DocumentIndex": 7,
               "Title": "meeting-01-kickoff.md",
               "DocumentMoniker": "C:\\Users\\Tyler Nabeta\\mealpass-market\\docs\\meeting-notes\\meeting-01-kickoff.md",
               "RelativeDocumentMoniker": "docs\\meeting-notes\\meeting-01-kickoff.md",
@@ -175,7 +127,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 11,
+              "DocumentIndex": 8,
               "Title": "README.md",
               "DocumentMoniker": "C:\\Users\\Tyler Nabeta\\mealpass-market\\README.md",
               "RelativeDocumentMoniker": "README.md",
@@ -187,7 +139,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 13,
+              "DocumentIndex": 10,
               "Title": "package-lock.json",
               "DocumentMoniker": "C:\\Users\\Tyler Nabeta\\mealpass-market\\package-lock.json",
               "RelativeDocumentMoniker": "package-lock.json",
@@ -199,7 +151,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 6,
+              "DocumentIndex": 3,
               "Title": "package.json",
               "DocumentMoniker": "C:\\Users\\Tyler Nabeta\\mealpass-market\\package.json",
               "RelativeDocumentMoniker": "package.json",
@@ -211,7 +163,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 14,
+              "DocumentIndex": 11,
               "Title": "tailwind.config.ts",
               "DocumentMoniker": "C:\\Users\\Tyler Nabeta\\mealpass-market\\tailwind.config.ts",
               "RelativeDocumentMoniker": "tailwind.config.ts",
@@ -223,7 +175,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 5,
+              "DocumentIndex": 2,
               "Title": "next-env.d.ts",
               "DocumentMoniker": "C:\\Users\\Tyler Nabeta\\mealpass-market\\next-env.d.ts",
               "RelativeDocumentMoniker": "next-env.d.ts",
@@ -235,7 +187,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 12,
+              "DocumentIndex": 9,
               "Title": "postcss.config.mjs",
               "DocumentMoniker": "C:\\Users\\Tyler Nabeta\\mealpass-market\\postcss.config.mjs",
               "RelativeDocumentMoniker": "postcss.config.mjs",
@@ -247,7 +199,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 7,
+              "DocumentIndex": 4,
               "Title": "globals.css",
               "DocumentMoniker": "C:\\Users\\Tyler Nabeta\\mealpass-market\\app\\globals.css",
               "RelativeDocumentMoniker": "app\\globals.css",
@@ -259,7 +211,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 15,
+              "DocumentIndex": 12,
               "Title": "next.config.mjs",
               "DocumentMoniker": "C:\\Users\\Tyler Nabeta\\mealpass-market\\next.config.mjs",
               "RelativeDocumentMoniker": "next.config.mjs",

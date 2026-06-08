@@ -114,37 +114,39 @@ function getDiscount(balanceAmount: number, askingPrice: number) {
 }
 
 export default function Home() {
-    const [listings, setListings] = useState<Listing[]>(initialListings);
-    const [recentRequests, setRecentRequests] = useState<Listing[]>([]);
-    const [flexFunds, setFlexFunds] = useState(100);
-    const [mealPlanBalance, setMealPlanBalance] = useState(200);
-    const [view, setView] = useState<View>("listings");
-    const [selectedListing, setSelectedListing] = useState<Listing | null>(null);
-    const [selectedSeller, setSelectedSeller] = useState<Listing | null>(null);
-    const [sellerInformation, setSellerInformation] = useState<{ [key: string]: SellerInfo }>(initialSellerInformation);
-    const [reviewScore, setReviewScore] = useState<number>(5);
-    const [reviewedRequestIds, setReviewedRequestIds] = useState<number[]>([]);
-    const [reviewedScores, setReviewedScores] = useState<{ [key: number]: number }>({});
-    const [successMessage, setSuccessMessage] = useState("");
-    const [showContactInfo, setShowContactInfo] = useState(false);
+  const [listings, setListings] = useState<Listing[]>(initialListings);
+  const [recentRequests, setRecentRequests] = useState<Listing[]>([]);
+  const [flexFunds, setFlexFunds] = useState(100);
+  const [mealPlanBalance, setMealPlanBalance] = useState(200);
+  const [view, setView] = useState<View>("listings");
+  const [selectedListing, setSelectedListing] = useState<Listing | null>(null);
+  const [selectedSeller, setSelectedSeller] = useState<Listing | null>(null);
+  const [sellerInformation, setSellerInformation] = useState<{ [key: string]: SellerInfo }>(initialSellerInformation);
+  const [reviewScore, setReviewScore] = useState<number>(5);
+  const [reviewedRequestIds, setReviewedRequestIds] = useState<number[]>([]);
+  const [reviewedScores, setReviewedScores] = useState<{ [key: number]: number }>({});
+  const [successMessage, setSuccessMessage] = useState("");
+  const [showFeedbackModal, setShowFeedbackModal] = useState(false);
+  const [showContactInfo, setShowContactInfo] = useState(false);
 
     const selectedSellerInfo = selectedSeller ? sellerInformation[selectedSeller.sellerName] : undefined;
 
-    const [form, setForm] = useState({
-        sellerName: "",
-        balanceAmount: "",
-        askingPrice: "",
-        locationNote: "",
-        email: "",
-        phone: ""
-    });
-    const [showConfirmation, setShowConfirmation] = useState(false);
-    const [pendingListing, setPendingListing] = useState<Listing | null>(null);
-    const [currentUserSellerName, setCurrentUserSellerName] = useState<string | null>(null);
-    const [showDeliveryModal, setShowDeliveryModal] = useState(false);
-    const [deliveryRequestId, setDeliveryRequestId] = useState<number | null>(null);
-    const [showWalletPanel, setShowWalletPanel] = useState(false);
-    const [showAllListings, setShowAllListings] = useState(false);
+  const [form, setForm] = useState({
+    sellerName: "",
+    balanceAmount: "",
+    askingPrice: "",
+    locationNote: "",
+    email: "",
+    phone: ""
+  });
+  const [showConfirmation, setShowConfirmation] = useState(false);
+  const [pendingListing, setPendingListing] = useState<Listing | null>(null);
+  const [currentUserSellerName, setCurrentUserSellerName] = useState<string | null>(null);
+  const [showDeliveryModal, setShowDeliveryModal] = useState(false);
+  const [deliveryRequestId, setDeliveryRequestId] = useState<number | null>(null);
+  const [showWalletPanel, setShowWalletPanel] = useState(false);
+  const [showAllListings, setShowAllListings] = useState(false);
+  const [hasEnteredMarketplace, setHasEnteredMarketplace] = useState(false);
 
     // New: filter state for searching by balanceAmount / askingPrice
     const [filters, setFilters] = useState({
@@ -234,6 +236,7 @@ export default function Home() {
         setSuccessMessage(
             `Request confirmed for ${selectedListing.sellerName}'s listing.`
         );
+        setShowFeedbackModal(true);
         setSelectedListing(null);
         setView("listings");
     }
@@ -435,36 +438,109 @@ export default function Home() {
     // Use filteredListings for what is visible so the UI reflects filters immediately.
     const visibleListings = showAllListings ? filteredListings : filteredListings.slice(0, 5);
 
+  if (!hasEnteredMarketplace) {
     return (
-        <main className="min-h-screen bg-[#f7faf5] text-market-ink">
-            <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-5 py-6 sm:px-8 lg:px-10">
-                <header className="flex flex-col justify-between gap-4 border-b border-market-ink/10 pb-5 sm:flex-row sm:items-center">
-                    <div>
-                        <h1 className="text-3xl font-black tracking-normal sm:text-4xl">
-                            MealPass Market
-                        </h1>
-                        <p className="mt-2 max-w-2xl text-sm leading-6 text-market-ink/65">
-                            Classroom MVP only. No real money, accounts, or school system
-                            integration.
-                        </p>
-                    </div>
-                    <div className="relative flex flex-col gap-3 sm:flex-row sm:items-center">
-                        <button
-                            onClick={() => setShowWalletPanel((current) => !current)}
-                            className="inline-flex items-center justify-center rounded-md border border-market-ink/15 bg-white px-5 py-3 font-bold text-market-ink transition hover:border-market-leaf/40 hover:text-market-leaf"
-                        >
-                            Wallet
-                        </button>
-                        <button
-                            onClick={() => {
-                                setSuccessMessage("");
-                                setSelectedListing(null);
-                                setView("create");
-                            }}
-                            className="inline-flex items-center justify-center rounded-md bg-market-leaf px-5 py-3 font-bold text-white transition hover:bg-[#286b47]"
-                        >
-                            Create Listing
-                        </button>
+      <main className="min-h-screen bg-[#f7faf5] text-market-ink">
+        <section className="mx-auto flex min-h-screen w-full max-w-6xl flex-col justify-center gap-8 px-5 py-10 sm:px-8 lg:px-10">
+          <div className="max-w-3xl">
+            <p className="text-sm font-bold uppercase tracking-wide text-market-leaf">
+              Classroom MVP
+            </p>
+            <h1 className="mt-3 text-4xl font-black tracking-normal sm:text-6xl">
+              MealPass Market
+            </h1>
+            <p className="mt-5 max-w-2xl text-lg leading-8 text-market-ink/70">
+              A student marketplace concept for turning unused meal card balance
+              into discounted campus food deals.
+            </p>
+            <p className="mt-3 max-w-2xl text-sm leading-6 text-market-ink/60">
+              Mock data only. No real money, accounts, or school system integration.
+            </p>
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+              <button
+                onClick={() => setHasEnteredMarketplace(true)}
+                className="inline-flex items-center justify-center rounded-md bg-market-leaf px-6 py-3 font-bold text-white transition hover:bg-[#286b47]"
+              >
+                Enter Marketplace
+              </button>
+              <button
+                onClick={() => {
+                  setHasEnteredMarketplace(true);
+                  setSuccessMessage("");
+                  setSelectedListing(null);
+                  setView("create");
+                }}
+                className="inline-flex items-center justify-center rounded-md border border-market-ink/15 bg-white px-6 py-3 font-bold text-market-ink transition hover:border-market-leaf/40 hover:text-market-leaf"
+              >
+                Create a Listing
+              </button>
+            </div>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-3">
+            {[
+              {
+                title: "Browse discounted balances",
+                description:
+                  "Find mock listings from students with unused meal card balance."
+              },
+              {
+                title: "Create your own listing",
+                description:
+                  "Post a mock meal card balance with an asking price and meetup note."
+              },
+              {
+                title: "Request and track",
+                description:
+                  "Request a listing, view recent requests, and see mock balance changes."
+              }
+            ].map((item) => (
+              <div
+                key={item.title}
+                className="rounded-lg border border-market-ink/10 bg-white p-5 shadow-[0_10px_35px_rgba(23,32,27,0.06)]"
+              >
+                <p className="font-black">{item.title}</p>
+                <p className="mt-2 text-sm leading-6 text-market-ink/60">
+                  {item.description}
+                </p>
+              </div>
+            ))}
+          </div>
+        </section>
+      </main>
+    );
+  }
+
+  return (
+    <main className="min-h-screen bg-[#f7faf5] text-market-ink">
+      <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-5 py-6 sm:px-8 lg:px-10">
+        <header className="flex flex-col justify-between gap-4 border-b border-market-ink/10 pb-5 sm:flex-row sm:items-center">
+          <div>
+            <h1 className="text-3xl font-black tracking-normal sm:text-4xl">
+              MealPass Market
+            </h1>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-market-ink/65">
+              Classroom MVP only. No real money, accounts, or school system
+              integration.
+            </p>
+          </div>
+          <div className="relative flex flex-col gap-3 sm:flex-row sm:items-center">
+            <button
+              onClick={() => setShowWalletPanel((current) => !current)}
+              className="inline-flex items-center justify-center rounded-md border border-market-ink/15 bg-white px-5 py-3 font-bold text-market-ink transition hover:border-market-leaf/40 hover:text-market-leaf"
+            >
+              Wallet
+            </button>
+            <button
+              onClick={() => {
+                setSuccessMessage("");
+                setSelectedListing(null);
+                setView("create");
+              }}
+              className="inline-flex items-center justify-center rounded-md bg-market-leaf px-5 py-3 font-bold text-white transition hover:bg-[#286b47]"
+            >
+              Create Listing
+            </button>
 
                         {showWalletPanel ? (
                             <div className="absolute right-0 top-full z-10 mt-3 w-72 rounded-lg border border-market-ink/10 bg-white p-4 shadow-[0_18px_45px_rgba(23,32,27,0.12)]">
@@ -1085,35 +1161,70 @@ export default function Home() {
                                 </label>
                             </div>
 
-                            <div className="flex flex-col gap-3 pt-2 sm:flex-row">
-                                <button
-                                    type="submit"
-                                    className="inline-flex flex-1 items-center justify-center rounded-md bg-market-leaf px-5 py-3 font-bold text-white transition hover:bg-[#286b47]"
-                                >
-                                    Submit Listing
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        setForm({
-                                            sellerName: "",
-                                            balanceAmount: "",
-                                            askingPrice: "",
-                                            locationNote: "",
-                                            email: "",
-                                            phone: ""
-                                        });
-                                        setView("listings");
-                                    }}
-                                    className="inline-flex flex-1 items-center justify-center rounded-md border border-market-ink/15 bg-white px-5 py-3 font-bold text-market-ink transition hover:border-market-leaf/50 hover:text-market-leaf"
-                                >
-                                    Cancel
-                                </button>
-                            </div>
-                        </form>
-                    </section>
-                ) : null}
-            </div>
-        </main>
-    );
+              <div className="flex flex-col gap-3 pt-2 sm:flex-row">
+                <button
+                  type="submit"
+                  className="inline-flex flex-1 items-center justify-center rounded-md bg-market-leaf px-5 py-3 font-bold text-white transition hover:bg-[#286b47]"
+                >
+                  Submit Listing
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setForm({
+                      sellerName: "",
+                      balanceAmount: "",
+                      askingPrice: "",
+                      locationNote: "",
+                      email: "",
+                      phone: ""
+                    });
+                    setView("listings");
+                  }}
+                  className="inline-flex flex-1 items-center justify-center rounded-md border border-market-ink/15 bg-white px-5 py-3 font-bold text-market-ink transition hover:border-market-leaf/50 hover:text-market-leaf"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </section>
+        ) : null}
+        {showFeedbackModal && (
+  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+    <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-lg">
+      <h2 className="text-xl font-black">
+        Quick Feedback
+      </h2>
+
+      <p className="mt-2 text-market-ink/70">
+        How was your experience?
+      </p>
+
+      <textarea
+        className="mt-4 w-full rounded-md border border-market-ink/15 p-3"
+        rows={4}
+        placeholder="Share your thoughts..."
+      />
+
+      <div className="mt-4 flex gap-3">
+        <button
+          onClick={() => setShowFeedbackModal(false)}
+          className="rounded-md bg-market-leaf px-4 py-2 font-bold text-white"
+        >
+          Submit
+        </button>
+
+        <button
+          onClick={() => setShowFeedbackModal(false)}
+          className="rounded-md border border-market-ink/15 px-4 py-2"
+        >
+          Skip
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+      </div>
+    </main>
+  );
 }
