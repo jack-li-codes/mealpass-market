@@ -498,58 +498,54 @@ export default function Home() {
 
                 {view === "listings" ? (
                     <section className="space-y-5">
-                        <div className="flex items-center justify-between gap-4">
-                            <h2 className="text-2xl font-black">Active Listings <span className="text-market-ink/60">({listings.length})</span></h2>
-                            <p className="text-sm text-market-ink/60">Mock data only</p>
-                        </div>
-
-                        {/* New: Filters UI */}
-                        <div className="flex flex-col gap-3 rounded-lg border border-market-ink/10 bg-white p-4 md:flex-row md:items-center md:justify-between">
-                            <div className="flex gap-3">
-                                <label className="flex items-center gap-2">
-                                    <span className="text-sm text-market-ink/70">Min balance</span>
-                                    <input
-                                        type="number"
-                                        min="0"
-                                        value={filters.minBalance}
-                                        onChange={(e) =>
-                                            setFilters({ ...filters, minBalance: e.target.value })
-                                        }
-                                        placeholder="e.g. 30"
-                                        className="ml-2 w-28 rounded-md border border-market-ink/15 bg-white px-3 py-2 outline-none transition focus:border-market-leaf"
-                                    />
-                                </label>
-
-                                <label className="flex items-center gap-2">
-                                    <span className="text-sm text-market-ink/70">Max asking</span>
-                                    <input
-                                        type="number"
-                                        min="0"
-                                        value={filters.maxAsking}
-                                        onChange={(e) =>
-                                            setFilters({ ...filters, maxAsking: e.target.value })
-                                        }
-                                        placeholder="e.g. 40"
-                                        className="ml-2 w-28 rounded-md border border-market-ink/15 bg-white px-3 py-2 outline-none transition focus:border-market-leaf"
-                                    />
-                                </label>
+                        {/* Title + Filters grouped so filters appear beside title on wide screens */}
+                        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                            <div className="flex items-center gap-4">
+                                <h2 className="text-2xl font-black">Active Listings <span className="text-market-ink/60">({listings.length})</span></h2>
                             </div>
 
-                            <div className="flex gap-2">
-                                <button
-                                    type="button"
-                                    onClick={applyAffordableFilter}
-                                    className="inline-flex items-center justify-center rounded-md bg-market-leaf px-3 py-2 font-bold text-white transition hover:bg-[#286b47]"
-                                >
-                                    Affordable for me
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={clearFilters}
-                                    className="inline-flex items-center justify-center rounded-md border border-market-ink/15 bg-white px-3 py-2 font-bold text-market-ink transition hover:border-market-leaf/50 hover:text-market-leaf"
-                                >
-                                    Clear filters
-                                </button>
+                            {/* Filters UI moved beside the title */}
+                            <div className="flex flex-col gap-3 rounded-lg border border-market-ink/10 bg-white p-4 md:flex-row md:items-center md:justify-between">
+                                <div className="flex gap-3">
+                                    <label className="flex items-center gap-2">
+                                        <span className="text-sm text-market-ink/70">Min balance</span>
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            value={filters.minBalance}
+                                            onChange={(e) =>
+                                                setFilters({ ...filters, minBalance: e.target.value })
+                                            }
+                                            placeholder="e.g. 30"
+                                            className="ml-2 w-20 rounded-md border border-market-ink/15 bg-white px-3 py-2 outline-none transition focus:border-market-leaf"
+                                        />
+                                    </label>
+
+                                    <label className="flex items-center gap-2">
+                                        <span className="text-sm text-market-ink/70">Max asking</span>
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            value={filters.maxAsking}
+                                            onChange={(e) =>
+                                                setFilters({ ...filters, maxAsking: e.target.value })
+                                            }
+                                            placeholder="e.g. 40"
+                                            className="ml-2 w-20 rounded-md border border-market-ink/15 bg-white px-3 py-2 outline-none transition focus:border-market-leaf"
+                                        />
+                                    </label>
+                                </div>
+
+                                <div className="flex gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={clearFilters}
+                                        className="inline-flex items-center justify-center rounded-md border border-market-ink/15 bg-white px-3 py-2 font-bold text-market-ink transition hover:border-market-leaf/50 hover:text-market-leaf"
+                                    >
+                                        Clear filters
+                                    </button>
+                                </div>
+                                <p className="text-sm text-market-ink/60">Mock data only</p>
                             </div>
                         </div>
 
