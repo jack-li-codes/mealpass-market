@@ -145,8 +145,11 @@ export default function Home() {
   const [showDeliveryModal, setShowDeliveryModal] = useState(false);
   const [deliveryRequestId, setDeliveryRequestId] = useState<number | null>(null);
   const [showWalletPanel, setShowWalletPanel] = useState(false);
+  const [showWalletUpdatePopup, setShowWalletUpdatePopup] = useState(false);
   const [showAllListings, setShowAllListings] = useState(false);
   const [hasEnteredMarketplace, setHasEnteredMarketplace] = useState(false);
+  const [showInsufficientFunds, setShowInsufficientFunds] = useState(false);
+  const [insufficientFundType, setInsufficientFundType] = useState<"flexFunds" | "mealPlanBalance" | null>(null);
 
   function openListing(listing: Listing) {
     setSuccessMessage("");
@@ -202,6 +205,13 @@ export default function Home() {
       return;
     }
 
+    // Check if flexFunds are sufficient
+    if (flexFunds < selectedListing.askingPrice) {
+      setInsufficientFundType("flexFunds");
+      setShowInsufficientFunds(true);
+      return;
+    }
+
     setListings((currentListings) =>
       currentListings.filter((listing) => listing.id !== selectedListing.id)
     );
@@ -210,8 +220,8 @@ export default function Home() {
       ...currentRequests
     ]);
     setFlexFunds((currentBalance) =>
-      currentBalance - selectedListing.askingPrice
-  );
+      Math.max(0, currentBalance - selectedListing.askingPrice)
+    );
     setSellerInformation((currentInfo) => {
       const prevInfo = currentInfo[selectedListing.sellerName] ?? {
         totalTransactions: 0,
@@ -230,7 +240,6 @@ export default function Home() {
     setSuccessMessage(
       `Request confirmed for ${selectedListing.sellerName}'s listing.`
     );
-    setShowFeedbackModal(true);
     setSelectedListing(null);
     setView("listings");
   }
@@ -250,14 +259,15 @@ export default function Home() {
       current.map((r) => (r.id === requestId ? { ...r, status: "completed" } : r))
     );
     closeDeliveryModal();
+    setShowFeedbackModal(true);
   }
 
   function reportNotReceived(requestId: number) {
     const req = recentRequests.find((r) => r.id === requestId);
     if (!req) return;
 
-    // Refund buyer
-    setFlexFunds((bal) => bal + req.askingPrice);
+    // Refund buyer (ensure it never goes below 0)
+    setFlexFunds((bal) => Math.max(0, bal + req.askingPrice));
 
     // Remove the request from recentRequests
     setRecentRequests((current) => current.filter((r) => r.id !== requestId));
@@ -349,7 +359,7 @@ export default function Home() {
     }
 
     setListings((currentListings) => [listing, ...currentListings]);
-    setMealPlanBalance((currentBalance) => currentBalance - listing.balanceAmount);
+    setMealPlanBalance((currentBalance) => Math.max(0, currentBalance - listing.balanceAmount));
     setCurrentUserSellerName(listing.sellerName);
     setForm({
       sellerName: "",
@@ -386,7 +396,7 @@ export default function Home() {
       );
       setMealPlanBalance(
         (currentBalance) =>
-          currentBalance + restoredBalance - pendingListing.balanceAmount
+          Math.max(0, currentBalance + restoredBalance - pendingListing.balanceAmount)
       );
       setCurrentUserSellerName(pendingListing.sellerName);
       setForm({
@@ -498,7 +508,7 @@ export default function Home() {
           <div className="relative flex flex-col gap-3 sm:flex-row sm:items-center">
             <button
               onClick={() => setShowWalletPanel((current) => !current)}
-              className="inline-flex items-center justify-center rounded-md border border-market-ink/15 bg-white px-5 py-3 font-bold text-market-ink transition hover:border-market-leaf/40 hover:text-market-leaf"
+              className="relative z-20 inline-flex items-center justify-center rounded-md border border-market-ink/15 bg-white px-5 py-3 font-bold text-market-ink transition hover:border-market-leaf/40 hover:text-market-leaf"
             >
               Wallet
             </button>
@@ -514,25 +524,62 @@ export default function Home() {
             </button>
 
             {showWalletPanel ? (
-              <div className="absolute right-0 top-full z-10 mt-3 w-72 rounded-lg border border-market-ink/10 bg-white p-4 shadow-[0_18px_45px_rgba(23,32,27,0.12)]">
-                <div className="grid gap-3">
-                  <div>
-                    <p className="text-sm text-market-ink/60">Flex Funds</p>
-                    <p className="mt-1 text-2xl font-black">
-                      {money.format(flexFunds)}
+              <>
+                <div
+                  className="fixed inset-0 z-10"
+                  onClick={() => setShowWalletPanel(false)}
+                />
+                <div className="absolute right-0 top-full z-20 mt-3 w-72 rounded-lg border border-market-ink/10 bg-white p-4 shadow-[0_18px_45px_rgba(23,32,27,0.12)]">
+                  <div className="grid gap-3">
+                    <div>
+                      <p className="text-sm text-market-ink/60">Flex Funds</p>
+                      <p className="mt-1 text-2xl font-black">
+                        {money.format(flexFunds)}
+                      </p>
+                    </div>
+                    <div className="border-t border-market-ink/10 pt-3">
+                      <p className="text-sm text-market-ink/60">Meal Plan Balance</p>
+                      <p className="mt-1 text-xl font-black">
+                        {money.format(mealPlanBalance)}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => {
+                        setShowWalletPanel(false);
+                        setShowWalletUpdatePopup(true);
+                      }}
+                      className="mt-3 inline-flex w-full items-center justify-center rounded-md bg-market-leaf px-3 py-2 text-sm font-bold text-white transition hover:bg-[#286b47]"
+                    >
+                      Update
+                    </button>
+                    <p className="text-xs leading-5 text-market-ink/55">
+                      Mock balances only. No real money is used.
                     </p>
                   </div>
-                  <div className="border-t border-market-ink/10 pt-3">
-                    <p className="text-sm text-market-ink/60">Meal Plan Balance</p>
-                    <p className="mt-1 text-xl font-black">
-                      {money.format(mealPlanBalance)}
-                    </p>
-                  </div>
-                  <p className="text-xs leading-5 text-market-ink/55">
-                    Mock balances only. No real money is used.
-                  </p>
                 </div>
-              </div>
+              </>
+            ) : null}
+            {showWalletUpdatePopup ? (
+              <>
+                <div
+                  className="fixed inset-0 z-30 bg-black/40"
+                  onClick={() => setShowWalletUpdatePopup(false)}
+                />
+                <div className="fixed inset-x-4 top-1/4 z-40 mx-auto max-w-md rounded-lg bg-white p-6 shadow-[0_18px_45px_rgba(23,32,27,0.18)]">
+                  <h2 className="text-xl font-black">Update Wallet</h2>
+                  <p className="mt-3 text-market-ink/75">
+                    Here would be where you connect the real money.
+                  </p>
+                  <div className="mt-6 flex justify-end">
+                    <button
+                      onClick={() => setShowWalletUpdatePopup(false)}
+                      className="inline-flex items-center justify-center rounded-md border border-market-ink/15 bg-white px-4 py-2 font-bold text-market-ink transition hover:border-market-leaf/40 hover:text-market-leaf"
+                    >
+                      Close
+                    </button>
+                  </div>
+                </div>
+              </>
             ) : null}
           </div>
         </header>
@@ -1004,13 +1051,14 @@ export default function Home() {
                   <input
                     required
                     min="1"
+                    step="1"
                     type="number"
                     value={form.balanceAmount}
                     onChange={(event) =>
                       setForm({ ...form, balanceAmount: event.target.value })
                     }
                     className="mt-2 w-full rounded-md border border-market-ink/15 bg-white px-4 py-3 outline-none transition focus:border-market-leaf"
-                    placeholder="45"
+                    placeholder="45.00"
                   />
                 </label>
 
@@ -1021,13 +1069,14 @@ export default function Home() {
                   <input
                     required
                     min="1"
+                    step="1"
                     type="number"
                     value={form.askingPrice}
                     onChange={(event) =>
                       setForm({ ...form, askingPrice: event.target.value })
                     }
                     className="mt-2 w-full rounded-md border border-market-ink/15 bg-white px-4 py-3 outline-none transition focus:border-market-leaf"
-                    placeholder="36"
+                    placeholder="36.00"
                   />
                 </label>
               </div>
@@ -1144,6 +1193,37 @@ export default function Home() {
     </div>
   </div>
 )}
+
+        {showInsufficientFunds && (
+          <>
+            <div className="fixed inset-0 z-40 bg-black/40" onClick={() => setShowInsufficientFunds(false)} />
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+              <section className="w-full max-w-md rounded-lg border border-red-400 bg-red-50 p-6 shadow-[0_10px_35px_rgba(23,32,27,0.08)]">
+                <p className="text-sm font-bold uppercase tracking-wide text-red-600">
+                  Insufficient Funds
+                </p>
+                <h2 className="mt-3 text-2xl font-black text-market-ink">Cannot complete transaction</h2>
+
+                <div className="mt-4 space-y-3 text-market-ink/80">
+                  <p>
+                    {insufficientFundType === "flexFunds" 
+                      ? "You do not have enough flex funds to complete this purchase. Please update your wallet and try again."
+                      : "You do not have enough meal plan balance to create this listing. Please update your wallet and try again."}
+                  </p>
+                </div>
+
+                <div className="mt-6 flex gap-3">
+                  <button
+                    onClick={() => setShowInsufficientFunds(false)}
+                    className="flex-1 rounded-md bg-market-leaf px-4 py-2.5 font-bold text-white transition hover:bg-[#286b47]"
+                  >
+                    Close
+                  </button>
+                </div>
+              </section>
+            </div>
+          </>
+        )}
       </div>
     </main>
   );
