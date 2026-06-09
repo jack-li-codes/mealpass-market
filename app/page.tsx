@@ -336,10 +336,8 @@ export default function Home() {
     const existingListing = listings.find(
       (listing) => listing.sellerName === newListing.sellerName
     );
-    const availableMealPlanBalance =
-      mealPlanBalance + (existingListing?.balanceAmount ?? 0);
 
-    if (balanceAmount > availableMealPlanBalance) {
+    if (balanceAmount > mealPlanBalance) {
       setSuccessMessage("Not enough Meal Plan Balance to create this listing.");
       return;
     }
@@ -361,58 +359,48 @@ export default function Home() {
     setListings((currentListings) => [listing, ...currentListings]);
     setMealPlanBalance((currentBalance) => Math.max(0, currentBalance - listing.balanceAmount));
     setCurrentUserSellerName(listing.sellerName);
-    setForm({
-      sellerName: "",
+    setForm((currentForm) => ({
+      sellerName: currentForm.sellerName,
       balanceAmount: "",
       askingPrice: "",
-      locationNote: "",
-      email: "",
-      phone: ""
-    });
+      locationNote: currentForm.locationNote,
+      email: currentForm.email,
+      phone: currentForm.phone
+    }));
     setSuccessMessage("Listing created and added to active listings.");
     setView("listings");
   }
 
-  function confirmReplacement() {
-    if (pendingListing) {
-      const existingListing = listings.find(
-        (listing) => listing.sellerName === pendingListing.sellerName
-      );
-      const restoredBalance = existingListing?.balanceAmount ?? 0;
+  function removeListing(listingId: number) {
+    const listingToRemove = listings.find((listing) => listing.id === listingId);
 
-      if (pendingListing.balanceAmount > mealPlanBalance + restoredBalance) {
-        setSuccessMessage("Not enough Meal Plan Balance to update this listing.");
-        setShowConfirmation(false);
-        setPendingListing(null);
+    if (!listingToRemove) {
+      return;
+    }
+
+    setListings((currentListings) =>
+      currentListings.filter((listing) => listing.id !== listingId)
+    );
+    setMealPlanBalance((currentBalance) =>
+      Math.max(0, currentBalance + listingToRemove.balanceAmount)
+    );
+    if (selectedListing?.id === listingId) {
+      setSelectedListing(null);
+      setView("listings");
+    }
+    setSuccessMessage("Your listing has been removed.");
+  }
+
+  function confirmAddListing() {
+    if (pendingListing) {
+      if (pendingListing.balanceAmount > mealPlanBalance) {
+        setSuccessMessage("Not enough Meal Plan Balance to create this listing.");
         return;
       }
 
-      setListings((currentListings) =>
-        currentListings.map((listing) =>
-          listing.sellerName === pendingListing.sellerName
-            ? pendingListing
-            : listing
-        )
-      );
-      setMealPlanBalance(
-        (currentBalance) =>
-          Math.max(0, currentBalance + restoredBalance - pendingListing.balanceAmount)
-      );
-      setCurrentUserSellerName(pendingListing.sellerName);
-      setForm({
-        sellerName: "",
-        balanceAmount: "",
-        askingPrice: "",
-        locationNote: "",
-        email: "",
-        phone: ""
-      });
-      setSuccessMessage(
-        `Listing for ${pendingListing.sellerName} has been updated.`
-      );
+      createListing(pendingListing);
       setShowConfirmation(false);
       setPendingListing(null);
-      setView("listings");
     }
   }
 
@@ -664,9 +652,13 @@ export default function Home() {
                       </p>
 
                       {currentUserSellerName === listing.sellerName ? (
-                        <div className="rounded-md bg-market-ink/10 px-4 py-2.5 text-sm font-bold text-market-ink/60 md:justify-self-end">
+                        <button
+                          type="button"
+                          onClick={() => openListing(listing)}
+                          className="rounded-md bg-market-ink/10 px-4 py-2.5 text-sm font-bold text-market-ink/60 transition hover:border-market-ink/30 hover:bg-market-ink/5 md:justify-self-end"
+                        >
                           My Listing
-                        </div>
+                        </button>
                       ) : (
                         <button
                           onClick={() => openListing(listing)}
@@ -813,12 +805,22 @@ export default function Home() {
             </div>
 
             <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-              <button
-                onClick={confirmRequest}
-                className="inline-flex flex-1 items-center justify-center rounded-md bg-market-leaf px-5 py-3 font-bold text-white transition hover:bg-[#286b47]"
-              >
-                Confirm Request
-              </button>
+              {currentUserSellerName === selectedListing.sellerName ? (
+                <button
+                  type="button"
+                  onClick={() => removeListing(selectedListing.id)}
+                  className="inline-flex flex-1 items-center justify-center rounded-md bg-market-amber px-5 py-3 font-bold text-white transition hover:bg-[#c99a00]"
+                >
+                  Remove Listing
+                </button>
+              ) : (
+                <button
+                  onClick={confirmRequest}
+                  className="inline-flex flex-1 items-center justify-center rounded-md bg-market-leaf px-5 py-3 font-bold text-white transition hover:bg-[#286b47]"
+                >
+                  Confirm Request
+                </button>
+              )}
               <button
                 onClick={() => {
                   setSelectedListing(null);
@@ -937,16 +939,16 @@ export default function Home() {
         {showConfirmation && pendingListing ? (
           <section className="mx-auto w-full max-w-2xl rounded-lg border border-market-amber/40 bg-[#fff8e7] p-6 shadow-[0_10px_35px_rgba(23,32,27,0.08)]">
             <p className="text-sm font-bold uppercase tracking-wide text-market-amber">
-              Confirm replacement
+              Confirm listing
             </p>
-            <h2 className="mt-3 text-2xl font-black">Replace Existing Listing?</h2>
+            <h2 className="mt-3 text-2xl font-black">Add another listing?</h2>
 
             <div className="mt-4 space-y-3 text-market-ink/80">
               <p>
                 You already have a listing under the name <span className="font-bold">&quot;{pendingListing.sellerName}&quot;</span>.
               </p>
               <p>
-                Submitting this new listing will replace your previous one with:
+                Confirming will keep your current listing and submit this new one if you have enough Meal Plan Balance.
               </p>
               <div className="rounded-md bg-white p-3 space-y-2 text-sm">
                 <p><span className="font-semibold">Meal card balance:</span> {money.format(pendingListing.balanceAmount)}</p>
@@ -957,10 +959,10 @@ export default function Home() {
 
             <div className="mt-6 flex flex-col gap-3 sm:flex-row">
               <button
-                onClick={confirmReplacement}
+                onClick={confirmAddListing}
                 className="inline-flex flex-1 items-center justify-center rounded-md bg-market-amber px-5 py-3 font-bold text-white transition hover:bg-[#c99a00]"
               >
-                Replace Listing
+                Add another listing
               </button>
               <button
                 onClick={() => {
@@ -1034,11 +1036,12 @@ export default function Home() {
                 </span>
                 <input
                   required
+                  disabled={Boolean(currentUserSellerName)}
                   value={form.sellerName}
                   onChange={(event) =>
                     setForm({ ...form, sellerName: event.target.value })
                   }
-                  className="mt-2 w-full rounded-md border border-market-ink/15 bg-white px-4 py-3 outline-none transition focus:border-market-leaf"
+                  className="mt-2 w-full rounded-md border border-market-ink/15 bg-white px-4 py-3 outline-none transition focus:border-market-leaf disabled:cursor-not-allowed disabled:opacity-60"
                   placeholder="e.g. Taylor M."
                 />
               </label>
@@ -1087,11 +1090,12 @@ export default function Home() {
                 </span>
                 <input
                   required
+                  disabled={Boolean(currentUserSellerName)}
                   value={form.locationNote}
                   onChange={(event) =>
                     setForm({ ...form, locationNote: event.target.value })
                   }
-                  className="mt-2 w-full rounded-md border border-market-ink/15 bg-white px-4 py-3 outline-none transition focus:border-market-leaf"
+                  className="mt-2 w-full rounded-md border border-market-ink/15 bg-white px-4 py-3 outline-none transition focus:border-market-leaf disabled:cursor-not-allowed disabled:opacity-60"
                   placeholder="e.g. Main cafeteria after period 3"
                 />
               </label>
@@ -1103,12 +1107,13 @@ export default function Home() {
                   </span>
                   <input
                     required
+                    disabled={Boolean(currentUserSellerName)}
                     type="email"
                     value={form.email}
                     onChange={(event) =>
                       setForm({ ...form, email: event.target.value })
                     }
-                    className="mt-2 w-full rounded-md border border-market-ink/15 bg-white px-4 py-3 outline-none transition focus:border-market-leaf"
+                    className="mt-2 w-full rounded-md border border-market-ink/15 bg-white px-4 py-3 outline-none transition focus:border-market-leaf disabled:cursor-not-allowed disabled:opacity-60"
                     placeholder="e.g. taylor.m@school.edu"
                   />
                 </label>
@@ -1119,12 +1124,13 @@ export default function Home() {
                   </span>
                   <input
                     required
+                    disabled={Boolean(currentUserSellerName)}
                     type="tel"
                     value={form.phone}
                     onChange={(event) =>
                       setForm({ ...form, phone: event.target.value })
                     }
-                    className="mt-2 w-full rounded-md border border-market-ink/15 bg-white px-4 py-3 outline-none transition focus:border-market-leaf"
+                    className="mt-2 w-full rounded-md border border-market-ink/15 bg-white px-4 py-3 outline-none transition focus:border-market-leaf disabled:cursor-not-allowed disabled:opacity-60"
                     placeholder="e.g. (555) 123-4567"
                   />
                 </label>
