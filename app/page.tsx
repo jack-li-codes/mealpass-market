@@ -151,6 +151,12 @@ export default function Home() {
   const [showInsufficientFunds, setShowInsufficientFunds] = useState(false);
   const [insufficientFundType, setInsufficientFundType] = useState<"flexFunds" | "mealPlanBalance" | null>(null);
 
+  // New: filter state for searching by balanceAmount / askingPrice
+  const [filters, setFilters] = useState({
+    minBalance: "",
+    maxAsking: ""
+  });
+
   function openListing(listing: Listing) {
     setSuccessMessage("");
     setSelectedListing(listing);
@@ -240,8 +246,32 @@ export default function Home() {
     setSuccessMessage(
       `Request confirmed for ${selectedListing.sellerName}'s listing.`
     );
+    setShowFeedbackModal(true);
     setSelectedListing(null);
     setView("listings");
+  }
+
+  const filteredListings = listings.filter((l) => {
+    const minBal = Number(filters.minBalance);
+    const maxAsk = Number(filters.maxAsking);
+
+    if (filters.minBalance !== "" && !Number.isNaN(minBal)) {
+      if (l.balanceAmount < minBal) return false;
+    }
+
+    if (filters.maxAsking !== "" && !Number.isNaN(maxAsk)) {
+      if (l.askingPrice > maxAsk) return false;
+    }
+
+    return true;
+  });
+
+  function clearFilters() {
+    setFilters({ minBalance: "", maxAsking: "" });
+  }
+
+  function applyAffordableFilter() {
+    setFilters((f) => ({ ...f, maxAsking: String(flexFunds) }));
   }
 
   function openDeliveryModal(requestId: number) {
@@ -259,7 +289,6 @@ export default function Home() {
       current.map((r) => (r.id === requestId ? { ...r, status: "completed" } : r))
     );
     closeDeliveryModal();
-    setShowFeedbackModal(true);
   }
 
   function reportNotReceived(requestId: number) {
@@ -340,6 +369,8 @@ export default function Home() {
       mealPlanBalance + (existingListing?.balanceAmount ?? 0);
 
     if (balanceAmount > availableMealPlanBalance) {
+      setInsufficientFundType("mealPlanBalance");
+      setShowInsufficientFunds(true);
       setSuccessMessage("Not enough Meal Plan Balance to create this listing.");
       return;
     }
@@ -354,6 +385,8 @@ export default function Home() {
 
   function createListing(listing: Listing) {
     if (listing.balanceAmount > mealPlanBalance) {
+      setInsufficientFundType("mealPlanBalance");
+      setShowInsufficientFunds(true);
       setSuccessMessage("Not enough Meal Plan Balance to create this listing.");
       return;
     }
@@ -389,14 +422,11 @@ export default function Home() {
 
       setListings((currentListings) =>
         currentListings.map((listing) =>
-          listing.sellerName === pendingListing.sellerName
-            ? pendingListing
-            : listing
+          listing.sellerName === pendingListing.sellerName ? pendingListing : listing
         )
       );
-      setMealPlanBalance(
-        (currentBalance) =>
-          Math.max(0, currentBalance + restoredBalance - pendingListing.balanceAmount)
+      setMealPlanBalance((currentBalance) =>
+        currentBalance + restoredBalance - pendingListing.balanceAmount
       );
       setCurrentUserSellerName(pendingListing.sellerName);
       setForm({
@@ -417,7 +447,8 @@ export default function Home() {
   }
 
   const deliveryRequest = deliveryRequestId ? recentRequests.find((r) => r.id === deliveryRequestId) ?? null : null;
-  const visibleListings = showAllListings ? listings : listings.slice(0, 5);
+  // Use filteredListings for what is visible so the UI reflects filters immediately.
+  const visibleListings = showAllListings ? filteredListings : filteredListings.slice(0, 5);
 
   if (!hasEnteredMarketplace) {
     return (
@@ -592,12 +623,61 @@ export default function Home() {
 
         {view === "listings" ? (
           <section className="space-y-5">
-            <div className="flex items-center justify-between gap-4">
-              <h2 className="text-2xl font-black">Active Listings <span className="text-market-ink/60">({listings.length})</span></h2>
-              <p className="text-sm text-market-ink/60">Mock data only</p>
+            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+              <div className="flex items-center gap-4">
+                <h2 className="text-2xl font-black">Active Listings <span className="text-market-ink/60">({listings.length})</span></h2>
+              </div>
+
+              <div className="flex flex-col gap-3 rounded-lg border border-market-ink/10 bg-white p-4 md:flex-row md:items-center md:justify-between">
+                <div className="flex gap-3">
+                  <label className="flex items-center gap-2">
+                    <span className="text-sm text-market-ink/70">Min balance</span>
+                    <input
+                      type="number"
+                      min="0"
+                      value={filters.minBalance}
+                      onChange={(e) =>
+                        setFilters({ ...filters, minBalance: e.target.value })
+                      }
+                      placeholder="e.g. 30"
+                      className="ml-2 w-20 rounded-md border border-market-ink/15 bg-white px-3 py-2 outline-none transition focus:border-market-leaf"
+                    />
+                  </label>
+
+                  <label className="flex items-center gap-2">
+                    <span className="text-sm text-market-ink/70">Max asking</span>
+                    <input
+                      type="number"
+                      min="0"
+                      value={filters.maxAsking}
+                      onChange={(e) =>
+                        setFilters({ ...filters, maxAsking: e.target.value })
+                      }
+                      placeholder="e.g. 40"
+                      className="ml-2 w-20 rounded-md border border-market-ink/15 bg-white px-3 py-2 outline-none transition focus:border-market-leaf"
+                    />
+                  </label>
+                </div>
+
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={clearFilters}
+                    className="inline-flex items-center justify-center rounded-md border border-market-ink/15 bg-white px-3 py-2 font-bold text-market-ink transition hover:border-market-leaf/50 hover:text-market-leaf"
+                  >
+                    Clear filters
+                  </button>
+                </div>
+                <p className="text-sm text-market-ink/60">Mock data only</p>
+              </div>
             </div>
 
-            {listings.length > 0 ? (
+            <div className="text-sm text-market-ink/65">
+              Showing {filteredListings.length} of {listings.length} listings
+              {filters.minBalance || filters.maxAsking ? " (filtered)" : ""}
+            </div>
+
+            {filteredListings.length > 0 ? (
               <div className="overflow-hidden rounded-lg border border-market-ink/10 bg-white shadow-[0_10px_35px_rgba(23,32,27,0.06)]">
                 <div className="hidden grid-cols-[1.1fr_0.8fr_0.8fr_0.8fr_1.8fr_0.9fr] gap-4 border-b border-market-ink/10 bg-[#f7faf5] px-4 py-3 text-sm font-bold text-market-ink/65 md:grid">
                   <span>Seller</span>
@@ -681,9 +761,9 @@ export default function Home() {
               </div>
             ) : (
               <div className="rounded-lg border border-dashed border-market-ink/20 bg-white p-8 text-center">
-                <h3 className="text-xl font-black">No active listings</h3>
+                <h3 className="text-xl font-black">No matching listings</h3>
                 <p className="mt-2 text-market-ink/65">
-                  Create a mock listing to add it to the marketplace.
+                  Try clearing filters or adjust the minimum balance / maximum asking price.
                 </p>
               </div>
             )}
@@ -719,15 +799,15 @@ export default function Home() {
                     key={request.id}
                     className="grid gap-3 border-b border-market-ink/10 px-4 py-4 last:border-b-0 md:grid-cols-[1.1fr_0.8fr_0.8fr_1.9fr_1fr] md:items-center md:gap-4 md:py-3"
                   >
-                        <div className="flex items-center gap-2">
-                          <p className="text-lg font-black md:text-base">{request.sellerName}</p>
-                          <button
-                            onClick={() => openSellerInfo(request)}
-                            className="rounded-md border border-market-ink/20 px-2 py-1 text-xs font-semibold text-market-ink/60 transition hover:border-market-ink/40 hover:bg-market-ink/5"
-                          >
-                            Info
-                          </button>
-                        </div>
+                    <div className="flex items-center gap-2">
+                      <p className="text-lg font-black md:text-base">{request.sellerName}</p>
+                      <button
+                        onClick={() => openSellerInfo(request)}
+                        className="rounded-md border border-market-ink/20 px-2 py-1 text-xs font-semibold text-market-ink/60 transition hover:border-market-ink/40 hover:bg-market-ink/5"
+                      >
+                        Info
+                      </button>
+                    </div>
 
                     <div className="grid grid-cols-2 gap-3 md:contents">
                       <div>
@@ -1158,41 +1238,38 @@ export default function Home() {
             </form>
           </section>
         ) : null}
+
         {showFeedbackModal && (
-  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-    <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-lg">
-      <h2 className="text-xl font-black">
-        Quick Feedback
-      </h2>
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+            <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-lg">
+              <h2 className="text-xl font-black">Quick Feedback</h2>
 
-      <p className="mt-2 text-market-ink/70">
-        How was your experience?
-      </p>
+              <p className="mt-2 text-market-ink/70">How was your experience?</p>
 
-      <textarea
-        className="mt-4 w-full rounded-md border border-market-ink/15 p-3"
-        rows={4}
-        placeholder="Share your thoughts..."
-      />
+              <textarea
+                className="mt-4 w-full rounded-md border border-market-ink/15 p-3"
+                rows={4}
+                placeholder="Share your thoughts..."
+              />
 
-      <div className="mt-4 flex gap-3">
-        <button
-          onClick={() => setShowFeedbackModal(false)}
-          className="rounded-md bg-market-leaf px-4 py-2 font-bold text-white"
-        >
-          Submit
-        </button>
+              <div className="mt-4 flex gap-3">
+                <button
+                  onClick={() => setShowFeedbackModal(false)}
+                  className="rounded-md bg-market-leaf px-4 py-2 font-bold text-white"
+                >
+                  Submit
+                </button>
 
-        <button
-          onClick={() => setShowFeedbackModal(false)}
-          className="rounded-md border border-market-ink/15 px-4 py-2"
-        >
-          Skip
-        </button>
-      </div>
-    </div>
-  </div>
-)}
+                <button
+                  onClick={() => setShowFeedbackModal(false)}
+                  className="rounded-md border border-market-ink/15 px-4 py-2"
+                >
+                  Skip
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {showInsufficientFunds && (
           <>
@@ -1206,7 +1283,7 @@ export default function Home() {
 
                 <div className="mt-4 space-y-3 text-market-ink/80">
                   <p>
-                    {insufficientFundType === "flexFunds" 
+                    {insufficientFundType === "flexFunds"
                       ? "You do not have enough flex funds to complete this purchase. Please update your wallet and try again."
                       : "You do not have enough meal plan balance to create this listing. Please update your wallet and try again."}
                   </p>
@@ -1228,4 +1305,3 @@ export default function Home() {
     </main>
   );
 }
-
