@@ -673,7 +673,7 @@ export default function Home() {
             </div>
 
             <div className="text-sm text-market-ink/65">
-              Showing {filteredListings.length} of {listings.length} listings
+              Showing {visibleListings.length} of {filteredListings.length} listings
               {filters.minBalance || filters.maxAsking ? " (filtered)" : ""}
             </div>
 
