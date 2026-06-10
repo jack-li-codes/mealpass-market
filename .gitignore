@@ -11,3 +11,4 @@ pnpm-debug.log*
 dev-server*.log
 demo-*.log
 .DS_Store
+tsconfig.tsbuildinfo
