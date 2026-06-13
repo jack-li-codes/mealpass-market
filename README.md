@@ -1,76 +1,49 @@
 # MealPass Market
 
-MealPass Market is a one-week school group project MVP for a student meal card balance exchange system. The prototype lets students view mock meal card listings, create a mock listing, request a listing, and track recent pending meetup requests.
+MealPass Market is a one-week school group project MVP for a student meal card balance exchange system.
 
-Classroom MVP only. No real money, accounts, payment processing, or school system integration is included.
+The prototype allows students to:
 
-## MVP Features
+- View active mock meal card balance listings.
+- Create a new mock listing.
+- Open a listing detail view.
+- Request a listing and move it to Recent Requests.
+- Track a mock buyer wallet balance.
 
-- View active meal card balance listings.
-- See seller name, meal card balance, asking price, discount, and meetup note.
-- Create a new mock listing using React state.
-- Open a transaction detail view for a listing.
-- Confirm a request to remove it from active listings.
-- Track confirmed requests in Recent Requests with `Pending meetup` status.
-- Track a mock buyer wallet balance that decreases by the listing asking price.
+This is a classroom MVP only. It does not include real money, real accounts, payment processing, or school system integration.
 
-## Team Workflow
+## How to Run Locally
 
-- Pull the latest code before starting work.
-- Create a separate branch for each task or feature.
-- Keep changes small and focused.
-- Do not commit generated folders such as `node_modules` or `.next`.
-- Run these checks before opening or merging a pull request:
+Clone and run the project using terminal:
+(Both create a folder named Projects. If this conflicts with anything on your computer, feel free to change it to something else)
 
-  ```powershell
-  npm run lint
-  npm run build
-  ```
+Windows
+cd C:\
+mkdir Projects
+cd Projects
+git clone https://github.com/jack-li-codes/mealpass-market
+cd mealpass-market
+npm install
+npm run dev -- -p 3000
 
-- Use clear commit messages, for example:
+Mac
+mkdir -p ~/Projects
+cd ~/Projects
+git clone https://github.com/jack-li-codes/mealpass-market
+cd mealpass-market
+npm install
+npm run dev -- -p 3000
 
-  ```text
-  Add recent requests table
-  ```
+Open:
 
-## Folder Structure
+http://localhost:3000
 
-```text
-app/
-  globals.css       Global Tailwind styles
-  layout.tsx        Next.js root layout
-  page.tsx          Single-page MealPass Market MVP
-docs/
-  meeting-notes/    Team meeting notes
-  project-management/ Planning, roles, timeline, and task tracking
-  testing/          Test plans, bug reports, and QA notes
-  screenshots/      Demo screenshots and UI evidence
-```
+Press Ctrl + C to stop the server.
 
-## Meeting Notes Location
-
-Meeting notes should be saved in:
+## Main Project File
 
 ```text
-docs/meeting-notes/
+app/page.tsx
 ```
 
-The kickoff meeting note is:
-
-```text
-docs/meeting-notes/meeting-01-kickoff.md
-```
-
-## Testing Documents Location
-
-Testing documents should be saved in:
-
-```text
-docs/testing/
-```
-
-Suggested testing files:
-
-- `test-plan.md`
-- `manual-test-results.md`
-- `known-issues.md`
+This file contains the single-page MealPass Market MVP.
